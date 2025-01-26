@@ -1,7 +1,7 @@
 from flask import Flask
-from app.config import Config
+from config import Config
 from flask_migrate import Migrate
-from app.models import db
+from models import db
 
 app = Flask(__name__)
 app.config.from_object(Config)
