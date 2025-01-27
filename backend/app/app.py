@@ -11,7 +11,7 @@ migrate = Migrate(app, db)
 
 @app.route("/")
 def home():
-    return "Flask is Working!"
+    return "Flask is working!"
 
 
 if __name__ == "__main__":
