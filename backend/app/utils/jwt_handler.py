@@ -1,6 +1,7 @@
 import jwt
 import datetime
 from flask import current_app
+from models import TokenBlacklist
 
 
 def create_access_token(user_id):
@@ -28,9 +29,10 @@ def verify_access_token(token):
 
 def decode_jwt(token):
     try:
-        decoded_token = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        decoded_token = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
 
-        if token in token_blacklist:
+        blacklisted = TokenBlacklist.query.filter_by(token=token).first()
+        if blacklisted:
             return None
         
         return decoded_token

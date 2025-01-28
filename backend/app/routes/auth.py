@@ -1,10 +1,9 @@
 from flask import request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User
+from models import db, User, TokenBlacklist
 from utils.jwt_handler import create_access_token, decode_jwt
 from routes import auth_bp
 
-token_blacklist = set()
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -56,7 +55,10 @@ def logout():
 
     if not decoded_token:
         return jsonify({"error": "Invalid token"}), 401
+    
 
-    token_blacklist.add(token)
+    blacklisted_token = TokenBlacklist(token=token)
+    db.session.add(blacklisted_token)
+    db.session.commit()
 
-    return jsonify({"message": "Logged out successfully"}), 200 
+    return jsonify({"message": "Logged out successfully"}), 200

@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+import datetime
 
 db = SQLAlchemy()
 
@@ -33,3 +34,8 @@ class Notification(db.Model):
     message = db.Column(db.String(255), nullable=False)
     read = db.Column(db.Boolean, default=False)
     user = db.relationship('User', backref=db.backref('notifications', lazy=True))
+
+class TokenBlacklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
