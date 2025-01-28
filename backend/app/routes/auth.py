@@ -2,8 +2,10 @@ from flask import request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, TokenBlacklist
 from utils.jwt_handler import create_access_token, decode_jwt
-from routes import auth_bp
+from flask import Blueprint
 
+
+auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -42,7 +44,7 @@ def login():
     
 
     access_token = create_access_token(user.id)
-    return jsonify({"access_token"}), 200
+    return jsonify({access_token}), 200
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
