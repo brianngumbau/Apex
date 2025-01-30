@@ -1,6 +1,6 @@
 from flask import request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, TokenBlacklist
+from models import db, User, TokenBlacklist, Group
 from utils.jwt_handler import create_access_token, decode_jwt
 from flask import Blueprint
 
@@ -20,11 +20,28 @@ def register():
     
     hashed_password = generate_password_hash(data["password"])
 
+    if data["is_admin"]:
+        if "group_name" not in data or "mpesa_number" not in data:
+            return jsonify({"error": "Admins must provide a group name and M-pesa number"}), 400
+        
+        new_group = Group(name=data["group_name"], mpesa_number=data["mpesa_number"])
+        db.session.add(new_group)
+        db.session.commit()
+        group_id = new_group.id
+    else:
+        group = Group.query.get(data["group_id"])
+        if not group:
+            return jsonify({"error": "Invalid group ID"}), 400
+        group_id = group.id
+        
+
     new_user = User(
         name=data["name"],
         email=data["email"],
         phone=data["phone"],
-        password=hashed_password
+        password=hashed_password,
+        is_admin=data["is_admin"],
+        group_id=group_id
     )
     db.session.add(new_user)
     db.session.commit()
