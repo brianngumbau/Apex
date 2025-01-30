@@ -13,7 +13,12 @@ def create_access_token(user_id):
         "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=24)
     }
 
-    return jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
+    token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
+    if isinstance(token, bytes):
+        token = token.decode("utf-8")
+
+
+    return token
 
 def verify_access_token(token):
     """

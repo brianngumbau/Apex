@@ -33,18 +33,26 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
+    try:
+        data = request.get_json()
+        print("Request data:", data)
 
-    if not all(field in data for field in ["email", "password"]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    user = User.query.filter_by(email=data["email"]).first()
-    if not user or not check_password_hash(user.password, data["password"]):
-        return jsonify({"error": "Invalid credentials"}), 401
-    
+        if not all(field in data for field in ["email", "password"]):
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        user = User.query.filter_by(email=data["email"]).first()
+        print("User found:", user)
+        if not user or not check_password_hash(user.password, data["password"]):
+            return jsonify({"error": "Invalid credentials"}), 401
+        
 
-    access_token = create_access_token(user.id)
-    return jsonify({access_token}), 200
+        access_token = create_access_token(user.id)
+        print("Access token created:", access_token)
+        return jsonify({"access_token": access_token}), 200
+    
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": "Internal server error"}), 500
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
