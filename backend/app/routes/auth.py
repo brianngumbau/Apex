@@ -11,7 +11,7 @@ auth_bp = Blueprint('auth', __name__)
 def register():
     data = request.get_json()
 
-    if not all(field in data for field in ["name", "email", "phone", "password"]):
+    if not all(field in data for field in ["name", "email", "phone", "password", "is_admin"]):
         return jsonify({"error": "Missing required fields"}), 400
     
 
@@ -19,9 +19,10 @@ def register():
         return jsonify({"error": "User with email or phone already exists"}), 409
     
     hashed_password = generate_password_hash(data["password"])
+    is_admin = bool(data["is_admin"])
 
-    if data["is_admin"]:
-        if "group_name" not in data or "mpesa_number" not in data:
+    if is_admin:
+        if not all(field in data for field in ["group_name", "mpesa_number"]):
             return jsonify({"error": "Admins must provide a group name and M-pesa number"}), 400
         
         new_group = Group(name=data["group_name"], mpesa_number=data["mpesa_number"])
@@ -29,6 +30,9 @@ def register():
         db.session.commit()
         group_id = new_group.id
     else:
+        if "group_id" not in data:
+            return jsonify({"error": "Regular users must provide a group ID"}), 400
+        
         group = Group.query.get(data["group_id"])
         if not group:
             return jsonify({"error": "Invalid group ID"}), 400
@@ -40,7 +44,7 @@ def register():
         email=data["email"],
         phone=data["phone"],
         password=hashed_password,
-        is_admin=data["is_admin"],
+        is_admin=is_admin,
         group_id=group_id
     )
     db.session.add(new_user)
