@@ -28,7 +28,7 @@ class Group(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
-    members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan")
+    members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan", foreign_keys=[User.group_id])
 
 class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
