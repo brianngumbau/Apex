@@ -72,17 +72,17 @@ def approve_withdrawal(transaction_id):
 
     #Verifying the transaction id
     
-    transaction = Transaction.query.filter_by(id = transaction_id).first()
-    withdrawals = transaction.withdrawal_request
+    withdrawal = WithdrawalRequest.query.filter_by( transaction_id = transaction_id).first()
+    
 
-    for withdrawal in withdrawals:
-        if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
-            return jsonify({"error": "Withdrawal request not found or already processed"})
-        # Approve the withdrawal
-        withdrawal.approvals +=1
-        total_members = User.query.count()
-        if withdrawal.approvals > (total_members-1) / 2:
-            withdrawal.status = WithdrawalStatus.APPROVED
+    
+    if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
+        return jsonify({"error": "Withdrawal request not found or already processed"})
+    # Approve the withdrawal
+    withdrawal.approvals +=1
+    total_members = User.query.count()
+    if withdrawal.approvals > (total_members-1) / 2:
+        withdrawal.status = WithdrawalStatus.APPROVED
 
     db.session.commit()
     return jsonify({"msg": "Successfully approved!"}), 201
