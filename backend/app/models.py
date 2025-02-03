@@ -12,6 +12,11 @@ class TransactionType(Enum):
     CREDIT = "credit"
     DEBIT = "debit"
 
+class WithdrawalStatus(Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -64,3 +69,13 @@ class TokenBlacklist(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     user = db.relationship('User', backref=db.backref('blacklisted_tokens', lazy=True))
+
+
+class WithdrawalRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False, unique=True)
+    status = db.Column(db.Enum(WithdrawalStatus), default=WithdrawalStatus.PENDING, nullable=False)
+    approvals = db.Column(db.Integer, default=0)
+    rejections = db.Column(db.Integer, default=0)
+
+    transaction = db.relationship('Transaction', backref=db.backref('withdrawal_request', uselist=False, cascade="all, delete-orphan"))
