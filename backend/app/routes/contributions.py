@@ -31,7 +31,7 @@ def contribute():
         amount=amount,
         type=TransactionType.CREDIT,
         reason="Contribution",
-        timestamp=datetime.datetime.now(datetime.timezone.utc)
+        date=datetime.datetime.now(datetime.timezone.utc)
     )
 
     db.session.add(contribution)
@@ -57,7 +57,6 @@ def get_contributions():
 
 
 @contributions_bp.route('/contributions/total', methods=['GET'])
-@jwt_required()
 @jwt_required()
 def get_total_contributions():
     """Retrieve the total amount contributed by all users."""

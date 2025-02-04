@@ -1,7 +1,8 @@
 from flask import request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, TokenBlacklist, Group
-from utils.jwt_handler import create_access_token, decode_jwt
+from flask_jwt_extended import create_access_token
+from utils.jwt_handler import decode_jwt
 from flask import Blueprint
 
 
@@ -84,7 +85,7 @@ def login():
             return jsonify({"error": "Invalid credentials"}), 401
         
 
-        access_token = create_access_token(user.id)
+        access_token = create_access_token(identity=user.id, additional_claims={"sub": str(user.id)})
         print("Access token created:", access_token)
         return jsonify({"access_token": access_token}), 200
     
