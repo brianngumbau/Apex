@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, WithdrawalStatus, db, Transaction, TransactionType, WithdrawalRequest
+from models import User, WithdrawalStatus, db, Transaction, TransactionType, WithdrawalRequest, Contribution, WithdrawalVotes
 import datetime
 
 
@@ -27,9 +27,24 @@ def withdraw_request():
     reason = data['reason']
 
     if not amount or amount <= 0:
-        return jsonify({"error": "Invalid amount"}), 401 #To be confirmed
+        return jsonify({"error": "Invalid amount"}), 400
+
+    # check if there's an existing pending withdrawal request
+    pending_withdrawal = WithdrawalRequest.query.filter_by(status=WithdrawalStatus.PENDING).first()
+    if pending_withdrawal:
+        return jsonify({"error": "A pending withdrawal already exists."}), 400
+
+    total_contributions = db.session.query(db.func.sum(Contribution.amount)).scalar() or 0
+    total_withdrawals = db.session.query(db.func.sum(Transaction.amount)).join(WithdrawalRequest, WithdrawalRequest.transaction_id == Transaction.id).filter(TransactionType == TransactionType.DEBIT, WithdrawalRequest.status == WithdrawalStatus.APPROVED).scalar() or 0
+
+    available_balance = total_contributions - total_withdrawals
+
+    # check for insufficient funds
+    if amount > available_balance:
+        return jsonify({"error": "Insufficient funds in the group account"}), 400
     
-    #Creating a Transaction instance
+
+    #Creating a Transaction for withdrawal
     withdrawal_transaction = Transaction(
         user_id = registered_user.id,
         amount = amount,
@@ -70,13 +85,22 @@ def approve_withdrawal(transaction_id):
     '''
     Allows members of each group to approve a withdrawal
     '''
-
-    #Verifying the transaction id
     
+    user_id = get_jwt_identity()
     withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
 
     if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
         return jsonify({"error": "Withdrawal request not found or already processed"})
+    
+    #check if user has already voted
+    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=transaction_id).first()
+    if existing_vote:
+        return jsonify({"error": "You have already voted"}), 400
+    
+    # Register the vote
+    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, vote="approve")
+    db.session.add(vote)
+
     # Approve the withdrawal
     withdrawal.approvals +=1
     total_members = User.query.count()
@@ -84,27 +108,46 @@ def approve_withdrawal(transaction_id):
         withdrawal.status = WithdrawalStatus.APPROVED
 
     db.session.commit()
-    return jsonify({"msg": "Successfully approved!"}), 201
+    return jsonify({
+        "msg": "Your approval has been recorded",
+        "total_approvals": withdrawal.approvals,
+        "total_rejections": withdrawal.rejections,
+        "status": withdrawal.status.value
+        }), 201
 
 
 @withdrawal_bp.route("/withdrawal/reject/<int:transaction_id>", methods = ["POST"])
 @jwt_required()
 def reject_withdrawal(transaction_id):
     '''
-    Allows members of each group to reject a withdrawal
+    Allows members of each group to reject a withdrawal.
     '''
-
-    #Verifying the transaction id
-    
+    user_id = get_jwt_identity()
     withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
 
     if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
-        return jsonify({"error": "Withdrawal request not found or already processed"})
-    
-    withdrawal.rejections +=1
+        return jsonify({"error": "Withdrawal request not found or already processed"}), 404
+
+    # Check if the user has already voted
+    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=transaction_id).first()
+    if existing_vote:
+        return jsonify({"error": "You have already voted"}), 400
+
+    # Register the vote
+    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, vote="reject")
+    db.session.add(vote)
+    withdrawal.rejections += 1
+
+    # Check if rejection threshold is met
     total_members = User.query.count()
-    if withdrawal.rejections > (total_members-1) / 2:
+    if withdrawal.rejections > (total_members - 1) / 2:
         withdrawal.status = WithdrawalStatus.REJECTED
 
     db.session.commit()
-    return jsonify({"msg": "Successfully rejected!"}), 201
+
+    return jsonify({
+        "message": "Your rejection has been recorded",
+        "total_approvals": withdrawal.approvals,
+        "total_rejections": withdrawal.rejections,
+        "status": withdrawal.status.value
+    }), 201

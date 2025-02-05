@@ -79,3 +79,13 @@ class WithdrawalRequest(db.Model):
     rejections = db.Column(db.Integer, default=0)
 
     transaction = db.relationship('Transaction', backref=db.backref('withdrawal_request', uselist=False, cascade="all, delete-orphan"))
+
+
+class WithdrawalVotes(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    withdrawal_id = db.Column(db.Integer, db.ForeignKey("withdrawal_request.transaction_id"), nullable=False)
+    vote = db.Column(db.String(10), nullable=False)  # "approve" or "reject"
+
+    user = db.relationship("User", backref="withdrawal_votes")
+    withdrawal = db.relationship("WithdrawalRequest", backref="votes")
