@@ -23,7 +23,7 @@ def get_all_transactions():
             "id": transaction.id,
             "user_id": transaction.user_id,
             "amount": transaction.amount,
-            "type": transaction.TransactionType.value,
+            "type": transaction.type.value,
             "reason": transaction.reason,
             "date": transaction.date.strftime("%Y-%m-%d %H:%M:%S")
         }

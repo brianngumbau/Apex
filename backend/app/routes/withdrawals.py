@@ -6,7 +6,7 @@ import datetime
 
 withdrawal_bp = Blueprint("withdrawals",__name__)
 
-@withdrawal_bp.route("/withdraw/request", methods = ["POST"])
+@withdrawal_bp.route("/withdrawal/request", methods = ["POST"])
 @jwt_required()
 def withdraw_request():
     '''
@@ -25,12 +25,13 @@ def withdraw_request():
     data = request.get_json()
     amount = data['amount'] 
     reason = data['reason']
+
     if not amount or amount <= 0:
         return jsonify({"error": "Invalid amount"}), 401 #To be confirmed
     
-    #Creating a Trasnsaction instance
+    #Creating a Transaction instance
     withdrawal_transaction = Transaction(
-        user_id = registered_user.user_id,
+        user_id = registered_user.id,
         amount = amount,
         type = TransactionType.DEBIT,
         reason = reason,
@@ -50,7 +51,7 @@ def withdraw_request():
 
     return jsonify({"message": "Withdrawal logged successfully", "transaction_id" : withdrawal_transaction.id}), 201
 
-@withdrawal_bp.route("/withdraw/status", methods = ["GET"])
+@withdrawal_bp.route("/withdrawal/status", methods = ["GET"])
 @jwt_required()
 def get_withdrawal_status():
     '''
@@ -59,11 +60,11 @@ def get_withdrawal_status():
     withdrawals = WithdrawalRequest.query.all()
    
     return jsonify([
-        {"id": withdrawal.transaction_id, "amount": withdrawal.amount, "date": withdrawal.created_at, "status": withdrawal.status.value, "reason" : withdrawal.reason}
+        {"id": withdrawal.transaction_id, "amount": withdrawal.transaction.amount, "date": withdrawal.transaction.date, "status": withdrawal.status.value, "reason" : withdrawal.transaction.reason}
         for withdrawal in withdrawals
     ]), 200
 
-@withdrawal_bp.route("/withdrawals/approve/<int:transaction_id>", methods = ["POST"])
+@withdrawal_bp.route("/withdrawal/approve/<int:transaction_id>", methods = ["POST"])
 @jwt_required()
 def approve_withdrawal(transaction_id):
     '''
@@ -72,10 +73,8 @@ def approve_withdrawal(transaction_id):
 
     #Verifying the transaction id
     
-    withdrawal = WithdrawalRequest.query.filter_by( transaction_id = transaction_id).first()
-    
+    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
 
-    
     if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
         return jsonify({"error": "Withdrawal request not found or already processed"})
     # Approve the withdrawal
@@ -88,7 +87,7 @@ def approve_withdrawal(transaction_id):
     return jsonify({"msg": "Successfully approved!"}), 201
 
 
-@withdrawal_bp.route("/withdrawals/reject/<int:transaction_id>", methods = ["POST"])
+@withdrawal_bp.route("/withdrawal/reject/<int:transaction_id>", methods = ["POST"])
 @jwt_required()
 def reject_withdrawal(transaction_id):
     '''
@@ -97,24 +96,15 @@ def reject_withdrawal(transaction_id):
 
     #Verifying the transaction id
     
-    transaction = Transaction.query.filter_by(id = transaction_id).first()
-    withdrawals = transaction.withdrawal_request
+    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
 
-    for withdrawal in withdrawals:
-        if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
-            return jsonify({"error": "Withdrawal request not found or already processed"})
-        # Approve the withdrawal
-        withdrawal.rejections +=1
-        total_members = User.query.count()
-        if withdrawal.rejections > (total_members-1) / 2:
-            withdrawal.status = WithdrawalStatus.REJECTED
+    if not withdrawal or withdrawal.status != WithdrawalStatus.PENDING:
+        return jsonify({"error": "Withdrawal request not found or already processed"})
+    
+    withdrawal.rejections +=1
+    total_members = User.query.count()
+    if withdrawal.rejections > (total_members-1) / 2:
+        withdrawal.status = WithdrawalStatus.REJECTED
 
     db.session.commit()
     return jsonify({"msg": "Successfully rejected!"}), 201
-
-
-
-
-
-    
-    
