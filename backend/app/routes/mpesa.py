@@ -4,8 +4,9 @@ import requests
 import datetime
 from flask import Blueprint, request, jsonify
 from requests.auth import HTTPBasicAuth
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from dotenv import load_dotenv
+from models import User
 
 mpesa_bp = Blueprint("mpesa", __name__)
 
@@ -18,40 +19,81 @@ SHORTCODE = os.getenv("MPESA_SHORTCODE")
 PASSKEY = os.getenv("MPESA_PASSKEY")
 CALLBACK_URL = os.getenv("MPESA_CALLBACK_URL")
 
+available_token = None
+token_expiry = None
+
 # Get access token
 def get_access_token():
+    global available_token, token_expiry
+
+    if available_token and token_expiry and datetime.datetime.now() < token_expiry:
+        return available_token
+    
     url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-    response = requests.get(url, auth=HTTPBasicAuth(CONSUMER_KEY, CONSUMER_SECRET))
-    return response.json().get("access_token")
+    try:
+        response = requests.get(url, auth=HTTPBasicAuth(CONSUMER_KEY, CONSUMER_SECRET))
+        response.raise_for_status()
+
+        
+        data = response.json()
+        available_token = data["access_token"]
+        token_expiry = datetime.datetime.now() + datetime.timedelta(seconds=int(data["expires_in"]) - 10)
+
+        if not available_token:
+            raise ValueError("Missing access token in response")
+        return available_token
+    
+    except (requests.exceptions.RequestException, ValueError) as e:
+        print("Error fetching M-pesa token:", str(e))
+        return None
 
 # STK Push route
 @mpesa_bp.route("/mpesa/stkpush", methods=["POST"])
 @jwt_required()  # Ensure only authenticated users can initiate STK Push
 def stk_push():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.phone:
+        return jsonify({"error": "Phone number not linked to your account"}), 400
+    
     data = request.get_json()
-    phone_number = data.get("phone_number")
+    phone_number = user.phone
     amount = data.get("amount")
+
+    if not amount or amount <= 0:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    if not phone_number.startswith("254") or len(phone_number) != 12:
+        return jsonify({"error": "Invalid phone number format"}), 400
+    
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     password_str= f"{SHORTCODE}{PASSKEY}{timestamp}"
     password = base64.b64encode(password_str.encode()).decode()
 
-    payload = {
-        "BusinessShortCode": SHORTCODE,
-        "Password": password,
-        "Timestamp": timestamp,
-        "TransactionType": "CustomerPayBillOnline",
-        "Amount": amount,
-        "PartyA": phone_number,
-        "PartyB": SHORTCODE,
-        "PhoneNumber": phone_number,
-        "CallBackURL": CALLBACK_URL,
-        "AccountReference": "ChamaHub",
-        "TransactionDesc": "Contribution Payment"
-    }
-
     headers = {"Authorization": f"Bearer {get_access_token()}", "Content-Type": "application/json"}
-    response = requests.post("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest", json=payload, headers=headers)
-    return jsonify(response.json())
+
+    try:
+
+        response = requests.post("https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest", json={
+            "BusinessShortCode": SHORTCODE,
+            "Password": password,
+            "Timestamp": timestamp,
+            "TransactionType": "CustomerPayBillOnline",
+            "Amount": amount,
+            "PartyA": phone_number,
+            "PartyB": SHORTCODE,
+            "PhoneNumber": phone_number,
+            "CallBackURL": CALLBACK_URL,
+            "AccountReference": "ChamaHub",
+            "TransactionDesc": "Contribution Payment"
+        }, headers=headers)
+        response.raise_for_status()
+        return jsonify(response.json())
+    
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": "Failed to process STK push", "details": str(e)}), 500
+    
 
 # Handle M-Pesa callback
 @mpesa_bp.route("/mpesa/callback", methods=["POST"])

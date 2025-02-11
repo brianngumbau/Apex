@@ -8,15 +8,18 @@ transactions_bp = Blueprint("transactions", __name__)
 @jwt_required()
 def get_all_transactions():
     """
-    Fetch all transactions for the group
+    Fetch all transactions for the group(Admin only)
     """
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
     if not user:
         return jsonify({'message': 'User not found'}), 404
+    
+    if not user.is_admin:
+        return jsonify({"error": "Only admins can view all transactions"}), 403
 
-    transactions = Transaction.query.all()
+    transactions = Transaction.query.order_by(Transaction.date.desc()).all()
 
     return jsonify([
         {
@@ -42,7 +45,7 @@ def get_user_transactions():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    transactions = Transaction.query.filter_by(user_id=user_id).all()
+    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.date.desc()).all()
 
     return jsonify([
         {

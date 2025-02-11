@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import User, WithdrawalStatus, db, Transaction, TransactionType, WithdrawalRequest, Contribution, WithdrawalVotes
 import datetime
-
+import math
 
 withdrawal_bp = Blueprint("withdrawals",__name__)
 
@@ -28,6 +28,9 @@ def withdraw_request():
 
     if not amount or amount <= 0:
         return jsonify({"error": "Invalid amount"}), 400
+    
+    if not reason:
+        return jsonify({"error": "Reason is required"}), 400
 
     # check if there's an existing pending withdrawal request
     pending_withdrawal = WithdrawalRequest.query.filter_by(status=WithdrawalStatus.PENDING).first()
@@ -45,23 +48,22 @@ def withdraw_request():
     
 
     #Creating a Transaction for withdrawal
-    withdrawal_transaction = Transaction(
-        user_id = registered_user.id,
-        amount = amount,
-        type = TransactionType.DEBIT,
-        reason = reason,
-        date = datetime.datetime.now(datetime.timezone.utc),
-        )
-    
+    with db.session.begin_nested():
+        withdrawal_transaction = Transaction(
+            user_id = registered_user.id,
+            amount = amount,
+            type = TransactionType.DEBIT,
+            reason = reason,
+            date = datetime.datetime.now(datetime.timezone.utc),
+            )
 
-    db.session.add(withdrawal_transaction)
-    db.session.commit()
 
-    withdrawal_request = WithdrawalRequest(
-        transaction_id = withdrawal_transaction.id,
-    )
+        db.session.add(withdrawal_transaction)
+        db.session.flush()
 
-    db.session.add(withdrawal_request)
+        withdrawal_request = WithdrawalRequest(transaction_id=withdrawal_transaction.id)
+        db.session.add(withdrawal_request)
+
     db.session.commit()
 
     return jsonify({"message": "Withdrawal logged successfully", "transaction_id" : withdrawal_transaction.id}), 201
