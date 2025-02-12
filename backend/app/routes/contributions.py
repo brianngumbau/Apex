@@ -12,6 +12,7 @@ def contribute():
     user_id = get_jwt_identity()
     data = request.get_json()
     amount = data.get('amount')
+    receipt_number = data.get('receipt_number')
     
     user = User.query.get(user_id)
     if not user:
@@ -31,7 +32,8 @@ def contribute():
         amount=amount,
         type=TransactionType.CREDIT,
         reason="Contribution",
-        date=datetime.datetime.now(datetime.timezone.utc)
+        date=datetime.datetime.now(datetime.timezone.utc),
+        reference=receipt_number
     )
 
     db.session.add(contribution)

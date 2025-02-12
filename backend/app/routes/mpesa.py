@@ -7,6 +7,7 @@ from requests.auth import HTTPBasicAuth
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from dotenv import load_dotenv
 from models import User
+from routes.contributions import contribute
 
 mpesa_bp = Blueprint("mpesa", __name__)
 
@@ -99,5 +100,26 @@ def stk_push():
 @mpesa_bp.route("/mpesa/callback", methods=["POST"])
 def mpesa_callback():
     response = request.get_json()
-    print("M-Pesa Callback Response:", response)  # Log response for debugging
-    return jsonify({"message": "Callback received"})
+    print("M-Pesa Callback Response:", response)# Log response for debugging
+
+    try:
+        body = response["Body"]["stkCallback"]
+        result_code = body["ResultCode"]
+
+        if result_code != 0:
+            return jsonify({"error": "Payment failed", "ResultCode": result_code}), 400
+        
+        amount = body["CallbackMetadata"]["Item"][0]["Value"]
+        phone_number = str(body["CallbackMetadata"]["Item"][4]["Value"])
+        receipt_number = body["CallbackMetadata"]["Item"][1]["Value"]
+
+        user = User.query.filter_by(phone=phone_number).first()
+        if not user:
+            return jsonify({"error": "User not found for this phone number"}), 404
+        
+        contribute(user.id, amount, receipt_number)
+
+        return jsonify({"message": "M-Pesa payment processed successfully!"}), 201
+    
+    except KeyError as e:
+        return jsonify({"error": "Invalid callback format", "details": str(e)}), 400

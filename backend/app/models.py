@@ -51,6 +51,7 @@ class Transaction(db.Model):
     type = db.Column(db.Enum(TransactionType), default=TransactionType.CREDIT, nullable=False)
     reason = db.Column(db.String(200), nullable=False)
     date = db.Column(db.DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc), nullable=False)
+    reference = db.Column(db.String(50), nullable=True)
 
     user = db.relationship('User', backref=db.backref('transactions', lazy=True, cascade="all, delete-orphan"))
 
