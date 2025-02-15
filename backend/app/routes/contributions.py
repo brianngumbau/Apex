@@ -5,42 +5,50 @@ import datetime
 
 contributions_bp = Blueprint('contributions', __name__)
 
+
+def log_contribution(user_id, amount, receipt_number):
+    """Logs a contribution and its associated transaction."""
+    user = User.query.get(user_id)
+    if not user:
+        return {"error": "User not found"}, 404
+    
+    try:
+        contribution = Contribution(
+            user_id=user_id,
+            amount=amount,
+            date=datetime.date.today(),
+            status=ContributionStatus.PAID
+        )
+
+        transaction = Transaction(
+            user_id=user_id,
+            amount=amount,
+            type=TransactionType.CREDIT,
+            reason="Contribution",
+            date=datetime.datetime.now(datetime.timezone.utc),
+            reference=receipt_number
+        )
+
+        db.session.add(contribution)
+        db.session.add(transaction)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return {"error": f"Database error: {str(e)}"}, 500
+
+    return {"message": "Contribution logged successfully!", "contribution_id": contribution.id, "transaction_id": transaction.id}, 201
+
 @contributions_bp.route('/contribute', methods=['POST'])
 @jwt_required()
 def contribute():
-    """Allow a user to log a manual contribution and log it as a transaction."""
+    """Allow a user to log a manual contribution."""
     user_id = get_jwt_identity()
     data = request.get_json()
     amount = data.get('amount')
     receipt_number = data.get('receipt_number')
-    
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
 
-    # Log the contribution
-    contribution = Contribution(
-        user_id=user_id,
-        amount=amount,
-        date=datetime.date.today(),
-        status=ContributionStatus.PAID
-    )
-
-    # Log the transaction (as a credit)
-    transaction = Transaction(
-        user_id=user_id,
-        amount=amount,
-        type=TransactionType.CREDIT,
-        reason="Contribution",
-        date=datetime.datetime.now(datetime.timezone.utc),
-        reference=receipt_number
-    )
-
-    db.session.add(contribution)
-    db.session.add(transaction)
-    db.session.commit()
-
-    return jsonify({"message": "Contribution logged successfully!", "contribution_id": contribution.id, "transaction_id": transaction.id}), 201
+    response, status_code = log_contribution(user_id, amount, receipt_number)
+    return jsonify(response), status_code
 
 
 @contributions_bp.route('/contributions', methods=['GET'])

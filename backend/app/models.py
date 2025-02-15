@@ -16,6 +16,8 @@ class WithdrawalStatus(Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)

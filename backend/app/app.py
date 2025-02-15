@@ -7,7 +7,7 @@ from routes.auth import auth_bp
 from routes.contributions import contributions_bp
 from routes.transactions import transactions_bp
 from routes.withdrawals import withdrawal_bp
-from routes.mpesa import mpesa_bp
+from routes.mpesa_api import mpesa_bp
 
 jwt = JWTManager()
 app = Flask(__name__)
