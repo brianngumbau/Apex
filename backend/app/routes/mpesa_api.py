@@ -16,6 +16,9 @@ def stk_push():
     user_id = get_jwt_identity()
     amount = data.get("amount")
 
+    if not amount or amount <= 0:
+        return jsonify({"error": "Invalid amount"}), 400
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
@@ -53,6 +56,10 @@ def mpesa_callback():
     user = User.query.filter_by(phone=phone_number).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
+    
+
+    if Transaction.query.filter_by(receipt_number=receipt_number).first():
+        return jsonify({"error": "Duplicate transaction detected"}), 400
 
     # Log contribution using the helper function
     response, status_code = log_contribution(user.id, amount, receipt_number)
@@ -62,7 +69,7 @@ def mpesa_callback():
 #process withdrawal via B2C API
 @mpesa_bp.route("/mpesa/withdrawal", methods=["POST"])
 @jwt_required()
-def process_withdrawal(phone_number, amount, withdrawal_id):
+def process_withdrawal():
     """
     Processes an approved withdrawal via the M-Pesa B2C API
     """
@@ -81,6 +88,7 @@ def process_withdrawal(phone_number, amount, withdrawal_id):
         return jsonify({"error": "Invalid admin details"}), 400
     
     response = initiate_b2c_payment(
+        user_id=admin.id,
         phone_number=admin.phone,
         amount=transaction.amount,
         reason=transaction.reason
@@ -94,11 +102,11 @@ def b2c_callback():
     data = request.get_json()
     print("B2C Callback Response:", data)
 
-    result_code = data["Result"]["ResultCode"]
-    transacion_id = data["Result"]["TransactionID"]
-    result_desc = data["Result"]["ResultDesc"]
+    result_code = data["Result"].get("ResultCode")
+    transaction_id = data["Result"].get("TransactionID")
+    result_desc = data["Result"].get("ResultDesc")
 
-    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transacion_id).first()
+    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
 
     if not withdrawal:
         return jsonify({"error": "Transaction not found"}), 400
@@ -107,6 +115,7 @@ def b2c_callback():
         withdrawal.status = WithdrawalStatus.COMPLETED
     else:
         withdrawal.status = WithdrawalStatus.FAILED
+        print(f"Withdrawal failed: {result_desc}")
 
     db.session.commit()
 

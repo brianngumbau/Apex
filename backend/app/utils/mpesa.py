@@ -13,16 +13,20 @@ MPESA_CONSUMER_SECRET = Config.MPESA_CONSUMER_SECRET
 MPESA_STK_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"  # Add this if missing
 MPESA_B2C_URL = Config.MPESA_B2C_URL
 MPESA_CALLBACK_URL = Config.MPESA_CALLBACK_URL
+MPESA_B2C_INITIATOR_NAME = Config.MPESA_B2C_INITIATOR_NAME
 MPESA_B2C_SECURITY_CREDENTIAL = Config.MPESA_B2C_SECURITY_CREDENTIAL
 MPESA_B2C_COMMAND_ID = Config.MPESA_B2C_COMMAND_ID
 MPESA_B2C_RESULT_URL = Config.MPESA_B2C_RESULT_URL
-
+MPESA_ORIGINATOR_CONVERSATION_ID = Config.MPESA_ORIGINATOR_CONVERSATION_ID
+MPESA_B2C_TIMEOUT_URL = Config.MPESA_B2C_TIMEOUT_URL
 
 def get_mpesa_access_token():
     """Fetches the M-Pesa access token for API authentication."""
     url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
     response = requests.get(url, auth=(MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET))
-    return response.json().get("access_token")
+    if response.status_code == 200:
+        return response.json().get("access_token")
+    return None
 
 def generate_password(shortcode):
     """Generates the security password required for STK Push."""
@@ -41,6 +45,12 @@ def initiate_stk_push(user_id, amount):
     user = User.query.get(user_id)
     if not user or not user.group_id:
         return {"error": "User or group not found"}
+    
+    phone_number = user.phone
+    if not phone_number.startswith("+254"):
+        phone_number = f"+254{phone_number[-9:]}"
+    else:
+        phone_number = phone_number
 
     group = Group.query.get(user.group_id)
     if not group or not group.mpesa_number:
@@ -56,9 +66,9 @@ def initiate_stk_push(user_id, amount):
         "Timestamp": timestamp,
         "TransactionType": "CustomerPayBillOnline",
         "Amount": amount,
-        "PartyA": user.phone_number,
+        "PartyA": phone_number,
         "PartyB": group.mpesa_number, 
-        "PhoneNumber": user.phone_number,
+        "PhoneNumber": phone_number,
         "CallBackURL": MPESA_CALLBACK_URL,
         "AccountReference": f"Contribution-{user.id}-{group.id}",
         "TransactionDesc": "Contribution Payment"
@@ -87,14 +97,15 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason):
     
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     payload = {
-        "InitiatorName": "api_initiator",
+        "OriginatorConversationID": MPESA_ORIGINATOR_CONVERSATION_ID,
+        "InitiatorName": MPESA_B2C_INITIATOR_NAME,
         "SecurityCredential": MPESA_B2C_SECURITY_CREDENTIAL,
         "CommandID": MPESA_B2C_COMMAND_ID,
         "Amount": amount,
         "PartyA": group.mpesa_number,
         "PartyB": phone_number,
         "Remarks": reason,
-        "QueueTimeOutURL": MPESA_B2C_RESULT_URL,
+        "QueueTimeOutURL": MPESA_B2C_TIMEOUT_URL,
         "ResultURL": MPESA_B2C_RESULT_URL,
         "Occasion": ""
     }
