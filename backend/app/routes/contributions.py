@@ -13,6 +13,13 @@ def log_contribution(user_id, amount, receipt_number):
         return {"error": "User not found"}, 404
     
     try:
+        amount = float(amount)
+        if amount <= 0:
+            return {"error": "Invalid contribution amount"}, 400
+    except ValueError:
+        return {"error": "Amount must be a valid number"}, 400
+    
+    try:
         contribution = Contribution(
             user_id=user_id,
             amount=amount,
@@ -36,7 +43,10 @@ def log_contribution(user_id, amount, receipt_number):
         db.session.rollback()
         return {"error": f"Database error: {str(e)}"}, 500
 
-    return {"message": "Contribution logged successfully!", "contribution_id": contribution.id, "transaction_id": transaction.id}, 201
+    return {"message": "Contribution logged successfully!",
+            "contribution_id": contribution.id,
+            "transaction_id": transaction.id,
+        }, 201
 
 @contributions_bp.route('/contribute', methods=['POST'])
 @jwt_required()
@@ -46,6 +56,9 @@ def contribute():
     data = request.get_json()
     amount = data.get('amount')
     receipt_number = data.get('receipt_number')
+
+    if not amount or not receipt_number:
+        return jsonify({"error": "Missing required fields"}), 400
 
     response, status_code = log_contribution(user_id, amount, receipt_number)
     return jsonify(response), status_code
@@ -70,5 +83,8 @@ def get_contributions():
 @jwt_required()
 def get_total_contributions():
     """Retrieve the total amount contributed by all users."""
-    total = db.session.query(db.func.sum(Contribution.amount)).scalar() or 0
-    return jsonify({"total_contributions": total}), 200
+    try:
+        total = db.session.query(db.func.sum(Contribution.amount)).scalar() or 0
+        return jsonify({"total_contributions": total}), 200
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
