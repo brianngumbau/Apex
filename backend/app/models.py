@@ -80,6 +80,7 @@ class WithdrawalRequest(db.Model):
     status = db.Column(db.Enum(WithdrawalStatus), default=WithdrawalStatus.PENDING, nullable=False)
     approvals = db.Column(db.Integer, default=0)
     rejections = db.Column(db.Integer, default=0)
+    mpesa_transaction_id = db.Column(db.String(50), unique=True, nullable=True)
 
     transaction = db.relationship('Transaction', backref=db.backref('withdrawal_request', uselist=False, cascade="all, delete-orphan"))
 

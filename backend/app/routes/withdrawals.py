@@ -60,12 +60,12 @@ def withdraw_request():
         db.session.add(withdrawal_transaction)
         db.session.flush()
 
-        withdrawal_request = WithdrawalRequest(transaction_id=withdrawal_transaction.id)
+        withdrawal_request = WithdrawalRequest(transaction_id=withdrawal_transaction.id, mpesa_transaction_id=None)
         db.session.add(withdrawal_request)
 
     db.session.commit()
 
-    return jsonify({"message": "Withdrawal logged successfully", "transaction_id" : withdrawal_transaction.id}), 201
+    return jsonify({"message": "Withdrawal logged successfully", "withdrawal_id" : withdrawal_request.id, "transaction_id" : withdrawal_transaction.id}), 201
 
 @withdrawal_bp.route("/withdrawal/status", methods = ["GET"])
 @jwt_required()

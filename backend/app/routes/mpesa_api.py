@@ -58,7 +58,7 @@ def mpesa_callback():
         return jsonify({"error": "User not found"}), 404
     
 
-    if Transaction.query.filter_by(receipt_number=receipt_number).first():
+    if Transaction.query.filter_by(reference=receipt_number).first():
         return jsonify({"error": "Duplicate transaction detected"}), 400
 
     # Log contribution using the helper function
@@ -74,14 +74,14 @@ def process_withdrawal():
     Processes an approved withdrawal via the M-Pesa B2C API
     """
     data = request.get_json()
-    transaction_id = data.get("transaction_id")
+    withdrawal_request_id = data.get("withdrawal_request_id")
 
-    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id, status=WithdrawalStatus.APPROVED).first()
+    withdrawal = WithdrawalRequest.query.filter_by(withdrawal_request_id=withdrawal_request_id, status=WithdrawalStatus.APPROVED).first()
 
     if not withdrawal:
         return jsonify({"error": "No approved withdrawal found for this transaction"}), 400
     
-    transaction = Transaction.query.get(transaction_id)
+    transaction = Transaction.query.get(withdrawal.transaction_id)
     admin = User.query.get(transaction.user_id)
 
     if not admin or not admin.is_admin:
@@ -91,7 +91,8 @@ def process_withdrawal():
         user_id=admin.id,
         phone_number=admin.phone,
         amount=transaction.amount,
-        reason=transaction.reason
+        reason=transaction.reason,
+        withdrawal_request_id=withdrawal_request_id
     )
 
     return jsonify(response), 200
@@ -104,9 +105,12 @@ def b2c_callback():
 
     result_code = data["Result"].get("ResultCode")
     transaction_id = data["Result"].get("TransactionID")
+    withdrawal_request_id = data["Result"].get("OriginatorConversationID")
     result_desc = data["Result"].get("ResultDesc")
 
-    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id).first()
+    transaction = Transaction.query.filter_by(reference=transaction_id)
+
+    withdrawal = WithdrawalRequest.query.filter_by(withdrawal_request_id=withdrawal_request_id).first()
 
     if not withdrawal:
         return jsonify({"error": "Transaction not found"}), 400

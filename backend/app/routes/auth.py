@@ -8,14 +8,26 @@ from flask import Blueprint
 
 auth_bp = Blueprint('auth', __name__)
 
+def format_phone_number(phone):
+    """"Ensure the phone number is in +254xxxxxxxxx format"""
+    phone = phone.strip().replace(" ", "")
+    if not phone.startswith("+254"):
+        phone = f"+254{phone[-9:]}"
+    return phone if len(phone) == 13 else None
+
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
 
-    if not all(field in data for field in ["name", "email", "phone", "password", "is_admin"]):
+    required_fields = ["name", "email", "phone", "password", "is_admin"]
+    if not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
+    
+    formatted_phone = format_phone_number(data["phone"])
+    if not formatted_phone:
+        return jsonify({"error": "Invalid phone number format. Use +2547xxxxxxxx"}), 400
 
-    if User.query.filter((User.email == data["email"]) | (User.phone == data["phone"])).first():
+    if User.query.filter((User.email == data["email"]) | (User.phone == formatted_phone)).first():
         return jsonify({"error": "User with email or phone already exists"}), 409
 
     hashed_password = generate_password_hash(data["password"])
@@ -23,14 +35,15 @@ def register():
     group_id = None
 
     if is_admin:
-        if not all(field in data for field in ["group_name", "mpesa_number"]):
+        admin_fields = ["group_name", "mpesa_number"]
+        if not all(field in data for field in admin_fields):
             return jsonify({"error": "Admins must provide a group name and M-pesa number"}), 400
         
         # Create new user
         new_user = User(
             name=data["name"],
             email=data["email"],
-            phone=data["phone"],
+            phone=formatted_phone,
             password=hashed_password,
             is_admin=True
         )
@@ -60,7 +73,7 @@ def register():
         new_user = User(
             name=data["name"],
             email=data["email"],
-            phone=data["phone"],
+            phone=formatted_phone,
             password=hashed_password,
             is_admin=False,
             group_id=group_id

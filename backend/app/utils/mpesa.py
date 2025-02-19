@@ -2,12 +2,13 @@ import requests
 import datetime
 import base64
 import json
-from models import Group, User
+from models import Group, User, WithdrawalRequest, db
 from config import Config
 
 from config import Config
 
 MPESA_PASSKEY = Config.MPESA_PASSKEY
+shortcode = Config.MPESA_SHORTCODE
 MPESA_CONSUMER_KEY = Config.MPESA_CONSUMER_KEY
 MPESA_CONSUMER_SECRET = Config.MPESA_CONSUMER_SECRET
 MPESA_STK_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"  # Add this if missing
@@ -79,7 +80,7 @@ def initiate_stk_push(user_id, amount):
 
     return response_data
 
-def initiate_b2c_payment(user_id, phone_number, amount, reason):
+def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_request_id):
     """
     sends a B2C payment request to safaricom M-PESA API
     """
@@ -111,4 +112,11 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason):
     }
     
     response = requests.post(MPESA_B2C_URL, json=payload, headers=headers)
-    return response.json()
+    response_data = response.json()
+
+    withdrawal = WithdrawalRequest.query.get(withdrawal_request_id)
+    if withdrawal:
+        withdrawal.mpesa_transaction_id = response_data.get("OriginatorConversationID")
+        db.session.commit()
+
+    return response_data
