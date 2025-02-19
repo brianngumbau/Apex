@@ -24,10 +24,13 @@ MPESA_B2C_TIMEOUT_URL = Config.MPESA_B2C_TIMEOUT_URL
 def get_mpesa_access_token():
     """Fetches the M-Pesa access token for API authentication."""
     url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-    response = requests.get(url, auth=(MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET))
-    if response.status_code == 200:
+    try:
+        response = requests.get(url, auth=(MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET))
+        response.raise_for_status()
         return response.json().get("access_token")
-    return None
+    except requests.RequestException as e:
+        print(f"Error fetching M-Pesa access token: {e}")
+        return None
 
 def generate_password(shortcode):
     """Generates the security password required for STK Push."""
@@ -44,8 +47,10 @@ def initiate_stk_push(user_id, amount):
     
     # Get user and group details
     user = User.query.get(user_id)
-    if not user or not user.group_id:
-        return {"error": "User or group not found"}
+    if not user:
+        return {"error": "User not found"}
+    if user.group_id is None:
+        return {"error": "User is not part of any group"}
     
     phone_number = user.phone
     if not phone_number.startswith("+254"):
@@ -76,9 +81,13 @@ def initiate_stk_push(user_id, amount):
     }
 
     response = requests.post(MPESA_STK_URL, json=payload, headers=headers)
-    response_data = response.json()
-
-    return response_data
+    try:
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error initiating STK Push: {e}")
+        return {"error": "Failed to initiate STK Push"}
+    
 
 def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_request_id):
     """
@@ -112,10 +121,15 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_reque
     }
     
     response = requests.post(MPESA_B2C_URL, json=payload, headers=headers)
-    response_data = response.json()
+    try:
+        response.raise_for_status()
+        response_data = response.json()
+    except requests.RequestException as e:
+        print(f"Error initiating B2C payment: {e}")
+        return {"error": "Failed to initiate B2C payment"}
 
     withdrawal = WithdrawalRequest.query.get(withdrawal_request_id)
-    if withdrawal:
+    if withdrawal and response_data.get("OriginatorConversationID"):
         withdrawal.mpesa_transaction_id = response_data.get("OriginatorConversationID")
         db.session.commit()
 
