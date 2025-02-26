@@ -27,11 +27,11 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    monthly_total = db.Column(db.Float, default=0.0)
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    mpesa_number = db.Column(db.String(15), unique=True, nullable=False, index=True)
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
@@ -40,15 +40,18 @@ class Group(db.Model):
 class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.date.today)
     status = db.Column(db.Enum(ContributionStatus), default=ContributionStatus.MISSING, nullable=False)
 
     user = db.relationship('User', backref=db.backref('contributions', lazy=True, cascade="all, delete-orphan"))
+    group = db.relationship('Group', backref=db.backref('contributions', lazy=True, cascade="all, delete-orphan"))
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     amount = db.Column(db.Float, nullable=False)
     type = db.Column(db.Enum(TransactionType), default=TransactionType.CREDIT, nullable=False)
     reason = db.Column(db.String(200), nullable=False)
@@ -56,6 +59,7 @@ class Transaction(db.Model):
     reference = db.Column(db.String(50), nullable=True)
 
     user = db.relationship('User', backref=db.backref('transactions', lazy=True, cascade="all, delete-orphan"))
+    group = db.relationship('Group', backref=db.backref('transactions', lazy=True, cascade="all, delete-orphan"))
 
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -77,19 +81,23 @@ class TokenBlacklist(db.Model):
 class WithdrawalRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False, unique=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     status = db.Column(db.Enum(WithdrawalStatus), default=WithdrawalStatus.PENDING, nullable=False)
     approvals = db.Column(db.Integer, default=0)
     rejections = db.Column(db.Integer, default=0)
     mpesa_transaction_id = db.Column(db.String(50), unique=True, nullable=True)
 
     transaction = db.relationship('Transaction', backref=db.backref('withdrawal_request', uselist=False, cascade="all, delete-orphan"))
+    group = db.relationship('Group', backref=db.backref('withdrawal_request', lazy=True, cascade="all, delete-orphan"))
 
 
 class WithdrawalVotes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    withdrawal_id = db.Column(db.Integer, db.ForeignKey("withdrawal_request.transaction_id"), nullable=False)
-    vote = db.Column(db.String(10), nullable=False)  # "approve" or "reject"
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    withdrawal_id = db.Column(db.Integer, db.ForeignKey("withdrawal_request.id"), nullable=False)
+    vote = db.Column(db.String(10), nullable=False)
 
     user = db.relationship("User", backref="withdrawal_votes")
     withdrawal = db.relationship("WithdrawalRequest", backref="votes")
+    group = db.relationship('Group', backref=db.backref('withdrawalvotes', lazy=True, cascade="all, delete-orphan"))

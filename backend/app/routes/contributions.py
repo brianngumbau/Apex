@@ -2,33 +2,46 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType
 import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 contributions_bp = Blueprint('contributions', __name__)
 
-
 def log_contribution(user_id, amount, receipt_number):
     """Logs a contribution and its associated transaction."""
-    user = User.query.get(user_id)
-    if not user:
-        return {"error": "User not found"}, 404
-    
     try:
-        amount = float(amount)
-        if amount <= 0:
-            return {"error": "Invalid contribution amount"}, 400
-    except ValueError:
-        return {"error": "Amount must be a valid number"}, 400
-    
-    try:
+        user = User.query.get(user_id)
+        if not user:
+            logger.warning(f"Contribution failed: User {user_id} not found.")
+            return jsonify({"error": "User not found"}), 404
+
+        if not user.group_id:
+            logger.warning(f"Contribution failed: User {user_id} is not in any group.")
+            return jsonify({"error": "User is not in any group"}), 400
+
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                logger.warning(f"Invalid contribution amount: {amount} by user {user_id}.")
+                return jsonify({"error": "Invalid contribution amount"}), 400
+        except ValueError:
+            logger.warning(f"Invalid contribution amount format: {amount} by user {user_id}.")
+            return jsonify({"error": "Amount must be a valid number"}), 400
+
         contribution = Contribution(
             user_id=user_id,
+            group_id=user.group_id,
             amount=amount,
-            date=datetime.date.today(),
+            date=datetime.datetime.now(datetime.timezone.utc),
             status=ContributionStatus.PAID
         )
 
         transaction = Transaction(
             user_id=user_id,
+            group_id=user.group_id,
             amount=amount,
             type=TransactionType.CREDIT,
             reason="Contribution",
@@ -36,17 +49,24 @@ def log_contribution(user_id, amount, receipt_number):
             reference=receipt_number
         )
 
+        user.monthly_total += amount
+
         db.session.add(contribution)
         db.session.add(transaction)
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        return {"error": f"Database error: {str(e)}"}, 500
 
-    return {"message": "Contribution logged successfully!",
+        logger.info(f"Contribution logged successfully: User {user_id}, Amount {amount}, Receipt {receipt_number}")
+        return jsonify({
+            "message": "Contribution logged successfully!",
             "contribution_id": contribution.id,
             "transaction_id": transaction.id,
-        }, 201
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Database error while logging contribution for user {user_id}: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
+
 
 @contributions_bp.route('/contribute', methods=['POST'])
 @jwt_required()
@@ -54,14 +74,19 @@ def contribute():
     """Allow a user to log a manual contribution."""
     user_id = get_jwt_identity()
     data = request.get_json()
+
+    if not data:
+        logger.warning(f"Missing request data for contribution by user {user_id}.")
+        return jsonify({"error": "Invalid request"}), 400
+
     amount = data.get('amount')
     receipt_number = data.get('receipt_number')
 
     if not amount or not receipt_number:
+        logger.warning(f"Contribution failed: Missing fields by user {user_id}.")
         return jsonify({"error": "Missing required fields"}), 400
 
-    response, status_code = log_contribution(user_id, amount, receipt_number)
-    return jsonify(response), status_code
+    return log_contribution(user_id, amount, receipt_number)
 
 
 @contributions_bp.route('/contributions', methods=['GET'])
@@ -69,22 +94,52 @@ def contribute():
 def get_contributions():
     """Retrieve all contributions made by the logged-in user."""
     user_id = get_jwt_identity()
-    contributions = Contribution.query.filter_by(user_id=user_id).all()
+    try:
+        user = User.query.get(user_id)
 
-    return jsonify([{
-        "id": contribution.id,
-        "amount": contribution.amount,
-        "date": contribution.date.strftime("%Y-%m-%d %H:%M:%S"),
-        "status": contribution.status.value
-    } for contribution in contributions]), 200
+        if not user:
+            logger.warning(f"User {user_id} not found while fetching contributions.")
+            return jsonify({"error": "User not found"}), 404
+
+        if not user.group_id:
+            logger.warning(f"User {user_id} is not in any group while fetching contributions.")
+            return jsonify({"error": "User is not in any group"}), 400
+
+        contributions = Contribution.query.filter_by(user_id=user_id, group_id=user.group_id).all()
+
+        return jsonify([{
+            "id": contribution.id,
+            "amount": contribution.amount,
+            "date": contribution.date.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": contribution.status.value,
+            "group_id": contribution.group_id
+        } for contribution in contributions]), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching contributions for user {user_id}: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred while fetching contributions"}), 500
 
 
 @contributions_bp.route('/contributions/total', methods=['GET'])
 @jwt_required()
 def get_total_contributions():
-    """Retrieve the total amount contributed by all users."""
+    """Retrieve the total amount contributed by the user's group."""
+    user_id = get_jwt_identity()
     try:
-        total = db.session.query(db.func.sum(Contribution.amount)).scalar() or 0
+        user = User.query.get(user_id)
+
+        if not user:
+            logger.warning(f"User {user_id} not found while fetching total contributions.")
+            return jsonify({"error": "User not found"}), 404
+
+        if not user.group_id:
+            logger.warning(f"User {user_id} is not in any group while fetching total contributions.")
+            return jsonify({"error": "User is not in any group"}), 400
+
+        total = db.session.query(db.func.sum(Contribution.amount)).filter_by(group_id=user.group_id).scalar() or 0
+
         return jsonify({"total_contributions": total}), 200
+
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        logger.error(f"Error fetching total contributions for user {user_id}: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred while fetching total contributions"}), 500

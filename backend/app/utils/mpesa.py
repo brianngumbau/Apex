@@ -1,17 +1,20 @@
 import requests
 import datetime
 import base64
-import json
+import logging
 from models import Group, User, WithdrawalRequest, db
 from config import Config
 
-from config import Config
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+# M-Pesa Configuration
 MPESA_PASSKEY = Config.MPESA_PASSKEY
-shortcode = Config.MPESA_SHORTCODE
+MPESA_SHORTCODE = Config.MPESA_SHORTCODE
 MPESA_CONSUMER_KEY = Config.MPESA_CONSUMER_KEY
 MPESA_CONSUMER_SECRET = Config.MPESA_CONSUMER_SECRET
-MPESA_STK_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"  # Add this if missing
+MPESA_STK_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
 MPESA_B2C_URL = Config.MPESA_B2C_URL
 MPESA_CALLBACK_URL = Config.MPESA_CALLBACK_URL
 MPESA_B2C_INITIATOR_NAME = Config.MPESA_B2C_INITIATOR_NAME
@@ -29,13 +32,13 @@ def get_mpesa_access_token():
         response.raise_for_status()
         return response.json().get("access_token")
     except requests.RequestException as e:
-        print(f"Error fetching M-Pesa access token: {e}")
+        logger.error(f"Error fetching M-Pesa access token: {e}")
         return None
 
-def generate_password(shortcode):
+def generate_password():
     """Generates the security password required for STK Push."""
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    password_str = f"{shortcode}{MPESA_PASSKEY}{timestamp}"
+    password_str = f"{MPESA_SHORTCODE}{MPESA_PASSKEY}{timestamp}"
     password = base64.b64encode(password_str.encode()).decode()
     return password, timestamp
 
@@ -52,46 +55,43 @@ def initiate_stk_push(user_id, amount):
     if user.group_id is None:
         return {"error": "User is not part of any group"}
     
-    phone_number = user.phone
-    if not phone_number.startswith("+254"):
-        phone_number = f"+254{phone_number[-9:]}"
-    else:
-        phone_number = phone_number
-
     group = Group.query.get(user.group_id)
-    if not group or not group.mpesa_number:
-        return {"error": "Group M-Pesa number not set"}
+    if not group:
+        return {"error": "User belongs to no group"}
+    
+    phone_number = user.phone
+    if not phone_number.startswith("254"):
+        phone_number = f"254{phone_number[-9:]}"
 
     # Generate password for STK Push
-    password, timestamp = generate_password(group.mpesa_number)
+    password, timestamp = generate_password()
 
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     payload = {
-        "BusinessShortCode": group.mpesa_number,
+        "BusinessShortCode": MPESA_SHORTCODE,
         "Password": password,
         "Timestamp": timestamp,
         "TransactionType": "CustomerPayBillOnline",
         "Amount": amount,
         "PartyA": phone_number,
-        "PartyB": group.mpesa_number, 
+        "PartyB": MPESA_SHORTCODE, 
         "PhoneNumber": phone_number,
         "CallBackURL": MPESA_CALLBACK_URL,
         "AccountReference": f"Contribution-{user.id}-{group.id}",
         "TransactionDesc": "Contribution Payment"
     }
 
-    response = requests.post(MPESA_STK_URL, json=payload, headers=headers)
     try:
+        response = requests.post(MPESA_STK_URL, json=payload, headers=headers)
         response.raise_for_status()
         return response.json()
     except requests.RequestException as e:
-        print(f"Error initiating STK Push: {e}")
+        logger.error(f"Error initiating STK Push: {e}")
         return {"error": "Failed to initiate STK Push"}
-    
 
 def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_request_id):
     """
-    sends a B2C payment request to safaricom M-PESA API
+    Sends a B2C payment request to Safaricom M-Pesa API.
     """
     access_token = get_mpesa_access_token()
     if not access_token:
@@ -100,10 +100,6 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_reque
     user = User.query.get(user_id)
     if not user or not user.group_id:
         return {"error": "User or group not found"}
-
-    group = Group.query.get(user.group_id)
-    if not group or not group.mpesa_number:
-        return {"error": "Group M-Pesa number not set"}
     
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     payload = {
@@ -112,7 +108,7 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_reque
         "SecurityCredential": MPESA_B2C_SECURITY_CREDENTIAL,
         "CommandID": MPESA_B2C_COMMAND_ID,
         "Amount": amount,
-        "PartyA": group.mpesa_number,
+        "PartyA": MPESA_SHORTCODE,
         "PartyB": phone_number,
         "Remarks": reason,
         "QueueTimeOutURL": MPESA_B2C_TIMEOUT_URL,
@@ -120,17 +116,22 @@ def initiate_b2c_payment(user_id, phone_number, amount, reason, withdrawal_reque
         "Occasion": ""
     }
     
-    response = requests.post(MPESA_B2C_URL, json=payload, headers=headers)
     try:
+        response = requests.post(MPESA_B2C_URL, json=payload, headers=headers)
         response.raise_for_status()
         response_data = response.json()
     except requests.RequestException as e:
-        print(f"Error initiating B2C payment: {e}")
+        logger.error(f"Error initiating B2C payment: {e}")
         return {"error": "Failed to initiate B2C payment"}
 
     withdrawal = WithdrawalRequest.query.get(withdrawal_request_id)
     if withdrawal and response_data.get("OriginatorConversationID"):
         withdrawal.mpesa_transaction_id = response_data.get("OriginatorConversationID")
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error updating withdrawal request: {e}")
+            return {"error": "Failed to update withdrawal request"}
 
     return response_data

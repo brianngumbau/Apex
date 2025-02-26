@@ -8,6 +8,7 @@ from routes.contributions import contributions_bp
 from routes.transactions import transactions_bp
 from routes.withdrawals import withdrawal_bp
 from routes.mpesa_api import mpesa_bp
+from routes.groups import groups_bp
 
 jwt = JWTManager()
 app = Flask(__name__)
@@ -21,6 +22,7 @@ app.register_blueprint(contributions_bp)
 app.register_blueprint(transactions_bp)
 app.register_blueprint(withdrawal_bp)
 app.register_blueprint(mpesa_bp)
+app.register_blueprint(groups_bp)
 
 
 migrate = Migrate(app, db)

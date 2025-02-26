@@ -9,17 +9,17 @@ from flask import Blueprint
 auth_bp = Blueprint('auth', __name__)
 
 def format_phone_number(phone):
-    """"Ensure the phone number is in +254xxxxxxxxx format"""
+    """"Ensure the phone number is in 254xxxxxxxxx format"""
     phone = phone.strip().replace(" ", "")
-    if not phone.startswith("+254"):
-        phone = f"+254{phone[-9:]}"
+    if not phone.startswith("254"):
+        phone = f"254{phone[-9:]}"
     return phone if len(phone) == 13 else None
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
 
-    required_fields = ["name", "email", "phone", "password", "is_admin"]
+    required_fields = ["name", "email", "phone", "password"]
     if not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
     
@@ -31,57 +31,19 @@ def register():
         return jsonify({"error": "User with email or phone already exists"}), 409
 
     hashed_password = generate_password_hash(data["password"])
-    is_admin = bool(data["is_admin"])
-    group_id = None
+       
+    new_user = User(
+        name=data["name"],
+        email=data["email"],
+        phone=formatted_phone,
+        password=hashed_password,
+        is_admin=False,
+        group_id=None
+    )
+    db.session.add(new_user)
+    db.session.commit()
 
-    if is_admin:
-        admin_fields = ["group_name", "mpesa_number"]
-        if not all(field in data for field in admin_fields):
-            return jsonify({"error": "Admins must provide a group name and M-pesa number"}), 400
-        
-        # Create new user
-        new_user = User(
-            name=data["name"],
-            email=data["email"],
-            phone=formatted_phone,
-            password=hashed_password,
-            is_admin=True
-        )
-        db.session.add(new_user)
-        db.session.commit()
-
-        # create the group with the new_user.id as the admin_id
-        new_group = Group(
-            name=data["group_name"],
-            mpesa_number=data["mpesa_number"],
-            admin_id=new_user.id  # Assign the new user as the admin of the group
-        )
-        db.session.add(new_group)
-        db.session.commit()
-
-        group_id = new_group.id
-    else:
-        if "group_id" not in data:
-            return jsonify({"error": "Regular users must provide a group ID"}), 400
-        
-        group = Group.query.get(data["group_id"])
-        if not group:
-            return jsonify({"error": "Invalid group ID"}), 400
-        group_id = group.id
-
-        # Create new user for regular users
-        new_user = User(
-            name=data["name"],
-            email=data["email"],
-            phone=formatted_phone,
-            password=hashed_password,
-            is_admin=False,
-            group_id=group_id
-        )
-        db.session.add(new_user)
-        db.session.commit()
-
-    return jsonify({"message": "User registered successfully", "group_id": group_id}), 201
+    return jsonify({"message": "User registered successfully. Please log in and join or create a group."}), 201
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -100,7 +62,16 @@ def login():
 
         access_token = create_access_token(identity=user.id, additional_claims={"sub": str(user.id)})
         print("Access token created:", access_token)
-        return jsonify({"access_token": access_token}), 200
+
+        response = {
+            "access_token": access_token,
+            "user_id": user.id
+        }
+
+        if not user.group_id:
+            response["message"] = "Please create or join a group to continue."
+
+        return jsonify(response), 200
     
     except Exception as e:
         print("Error:", e)
