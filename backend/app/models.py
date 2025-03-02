@@ -19,6 +19,11 @@ class WithdrawalStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
+class GroupJoin(Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -105,3 +110,14 @@ class WithdrawalVotes(db.Model):
     user = db.relationship("User", backref="withdrawal_votes")
     withdrawal = db.relationship("WithdrawalRequest", backref="votes")
     group = db.relationship('Group', backref=db.backref('withdrawalvotes', lazy=True, cascade="all, delete-orphan"))
+
+
+class GroupJoinRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=False)
+    status = db.Column(db.Enum(GroupJoin), default=GroupJoin.PENDING, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc), nullable=False)
+
+    user = db.relationship("User", backref="join_requests")
+    group = db.relationship("Group", backref="join_requests")
