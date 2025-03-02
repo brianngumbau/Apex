@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType
+from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification
 import datetime
 import logging
 
@@ -50,6 +50,15 @@ def log_contribution(user_id, amount, receipt_number):
         )
 
         user.monthly_total += amount
+        if user.group_id:
+            notification = Notification(
+                user_id=user_id,
+                group_id=user.group_id,
+                message=f"Your contribution of ksh {amount} has been received",
+                type="Contribution",
+                date=datetime.datetime.now(datetime.timezone.utc)
+            )
+            db.session.add(notification)
 
         db.session.add(contribution)
         db.session.add(transaction)

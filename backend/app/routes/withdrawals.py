@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, WithdrawalStatus, db, Transaction, TransactionType, WithdrawalRequest, Contribution, WithdrawalVotes
+from models import User, WithdrawalStatus, db, Transaction, TransactionType, WithdrawalRequest, Contribution, WithdrawalVotes, Notification
 import datetime
 import logging
 
@@ -48,6 +48,7 @@ def withdraw_request():
     available_balance = total_contributions - total_withdrawals
 
     if amount > available_balance:
+        logger.info(f"withdrawal request denied due to insufficient funds. Group ID: {group_id}, Requested: {amount}, Available: {available_balance}")
         return jsonify({"error": "Insufficient funds in the group account"}), 400
 
     # Create a withdrawal transaction
@@ -70,6 +71,18 @@ def withdraw_request():
                 group_id=group_id
             )
             db.session.add(withdrawal_request)
+
+            group_members = User.query.filter_by(group_id=group_id).all()
+            for member in group_members:
+
+                notification = Notification(
+                    user_id=member.id,
+                    group_id=group_id,
+                    message=f"A withdrawal request of ksh {amount} has been initiated",
+                    type="Withdrawal request",
+                    date=datetime.datetime.now(datetime.timezone.utc)
+                )
+                db.session.add(notification)
 
         db.session.commit()
         logger.info(f"Withdrawal request created by Admin ID: {user_id} for Group ID: {group_id}")
@@ -142,11 +155,28 @@ def approve_withdrawal(transaction_id):
     vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id, vote="approve")
     db.session.add(vote)
 
-    withdrawal.approvals = (withdrawal.approvals or 0) + 1
+    total_approvals = db.session.query(db.func.count()).filter(
+        WithdrawalVotes.withdrawal_id == transaction_id,
+        WithdrawalVotes.group_id == group_id,
+        WithdrawalVotes.vote == "approve"
+    ).scalar()
+
     total_members = User.query.filter_by(group_id=group_id).count()
 
-    if withdrawal.approvals > (total_members - 1) / 2:
+    if total_approvals > total_members // 2:
         withdrawal.status = WithdrawalStatus.APPROVED
+
+        group_members = User.query.filter_by(group_id=group_id).all()
+        for member in group_members:
+            notification = Notification(
+                user_id=member.id,
+                group_id=group_id,
+                message=f"The withdrawal request of ksh {withdrawal.amount} has been approved",
+                type="Withdrawal request approval",
+                date=datetime.datetime.now(datetime.timezone.utc)
+            )
+
+            db.session.add(notification)
 
     db.session.commit()
     logger.info(f"User {user_id} approved withdrawal {transaction_id}")
@@ -184,11 +214,27 @@ def reject_withdrawal(transaction_id):
     # Register rejection vote
     vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id, vote="reject")
     db.session.add(vote)
-    withdrawal.rejections = (withdrawal.rejections or 0) + 1
+
+    total_rejections = db.session.query(db.func.count()).filter(
+        WithdrawalVotes.withdrawal_id == transaction_id,
+        WithdrawalVotes.group_id == group_id,
+        WithdrawalVotes.vote == "reject"
+    ).scalar()
 
     total_members = User.query.filter_by(group_id=group_id).count()
-    if withdrawal.rejections > (total_members - 1) / 2:
+    if total_rejections > total_members // 2:
         withdrawal.status = WithdrawalStatus.REJECTED
+
+        group_members = User.query.filter_by(group_id=group_id).all()
+        for member in group_members:
+            notification = Notification(
+                user_id=user_id,
+                group_id=group_id,
+                message=f"The withdrawal request of Ksh {withdrawal.amount} was rejected",
+                type="withdrawal request rejection",
+                date=datetime.datetime.now(datetime.timezone.utc)
+            )
+            db.session.add(notification)
 
     db.session.commit()
     logger.info(f"User {user_id} rejected withdrawal {transaction_id}")

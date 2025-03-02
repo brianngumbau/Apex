@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db
+from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification
 from utils.mpesa import initiate_stk_push, initiate_b2c_payment
 from routes.contributions import log_contribution
 import logging
+import datetime
 
 mpesa_bp = Blueprint("mpesa", __name__)
 
@@ -31,7 +32,11 @@ def stk_push():
     
     logger.info(f"Initiating STK push for user {user_id}, Amount: {amount}")
 
-    response = initiate_stk_push(user_id, amount)
+    try:
+        response = initiate_stk_push(user_id, amount)
+    except Exception as e:
+        logger.error(f"STK push failed due to an exception: {str(e)}")
+        return jsonify({"error": "STK push failed", "details": str(e)}), 500
     
     if response.get("ResponseCode") == "0":
         logger.info(f"STK push initiated successfully for user {user_id}, CheckoutRequestID: {response.get('CheckoutRequestID')}")
@@ -87,6 +92,17 @@ def mpesa_callback():
     
     # Log contribution using the helper function
     response, status_code = log_contribution(user.id, amount, receipt_number)
+
+    notification = Notification(
+        user_id=user.id,
+        group_id=user.group_id,
+        message=f"Your contribution of Ksh {amount} via M-pesa has been received",
+        type="Mpesa contribution",
+        date=datetime.datetime.now(datetime.timezone.utc)
+
+    )
+    db.session.add(notification)
+    db.session.commit()
     return jsonify(response), status_code
 
 
@@ -114,13 +130,18 @@ def process_withdrawal():
         return jsonify({"error": "Invalid admin phone number format"}), 400
     
     logger.info(f"Processing withdrawal {withdrawal_request_id} for admin {admin.id}")
-    response = initiate_b2c_payment(
+    
+    try:
+        response = initiate_b2c_payment(
         user_id=admin.id,
         phone_number=admin.phone,
         amount=transaction.amount,
         reason=transaction.reason,
         withdrawal_request_id=withdrawal_request_id
-    )
+        )
+    except Exception as e:
+        logger.error(f"B2c payment failed: {str(e)}")
+        return jsonify({"error": "B2C payment failed", "details": str(e)}), 500
 
     return jsonify(response), 200
 
@@ -147,13 +168,29 @@ def b2c_callback():
         logger.warning(f"Withdrawal request with transaction ID {mpesa_transaction_id} not found")
         return jsonify({"error": "Transaction not found"}), 400
     
-    if result_code == 0:
-        withdrawal.status = WithdrawalStatus.COMPLETED
-        logger.info(f"Withdrawal {mpesa_transaction_id} completed successfully")
-    else:
-        withdrawal.status = WithdrawalStatus.FAILED
-        logger.error(f"Withdrawal {mpesa_transaction_id} failed: {result_desc}")
+    
+    try:
+        if result_code == 0:
+            withdrawal.status = WithdrawalStatus.COMPLETED
+            logger.info(f"Withdrawal {mpesa_transaction_id} completed successfully")
+            group_members = User.query.filter_by(group_id=withdrawal.group_id).all()
 
-    db.session.commit()
+            for member in group_members:
+                notification =  Notification(
+                    user_id=member.id,
+                    group_id=withdrawal.group_id,
+                    message=f"A withdrawal of ksh {withdrawal.amount} via M-pesa has been completed successfully",
+                    type="Withdrawal",
+                    date=datetime.datetime.now(datetime.timezone.utc)
+                    )
+                db.session.add(notification)
+        else:
+            withdrawal.status = WithdrawalStatus.FAILED
+            logger.error(f"Withdrawal {mpesa_transaction_id} failed: {result_desc}")
+            
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating withdrawal status: {str(e)}")
 
     return jsonify({"message": "Callback processed successfully"})

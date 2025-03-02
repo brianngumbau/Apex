@@ -40,7 +40,7 @@ class Group(db.Model):
 class Contribution(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     date = db.Column(db.Date, nullable=False, default=datetime.date.today)
     status = db.Column(db.Enum(ContributionStatus), default=ContributionStatus.MISSING, nullable=False)
@@ -51,7 +51,7 @@ class Contribution(db.Model):
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     type = db.Column(db.Enum(TransactionType), default=TransactionType.CREDIT, nullable=False)
     reason = db.Column(db.String(200), nullable=False)
@@ -64,10 +64,14 @@ class Transaction(db.Model):
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=True)
     message = db.Column(db.String(255), nullable=False)
     read = db.Column(db.Boolean, default=False)
+    type = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
 
     user = db.relationship('User', backref=db.backref('notifications', lazy=True, cascade="all, delete-orphan"))
+    group = db.relationship("Group", backref=db.backref("notifications", lazy=True, cascade="all, delete-orphan"))
 
 class TokenBlacklist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -81,7 +85,7 @@ class TokenBlacklist(db.Model):
 class WithdrawalRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=False, unique=True)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     status = db.Column(db.Enum(WithdrawalStatus), default=WithdrawalStatus.PENDING, nullable=False)
     approvals = db.Column(db.Integer, default=0)
     rejections = db.Column(db.Integer, default=0)
@@ -94,7 +98,7 @@ class WithdrawalRequest(db.Model):
 class WithdrawalVotes(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     withdrawal_id = db.Column(db.Integer, db.ForeignKey("withdrawal_request.id"), nullable=False)
     vote = db.Column(db.String(10), nullable=False)
 
