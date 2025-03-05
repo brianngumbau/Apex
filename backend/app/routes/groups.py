@@ -54,7 +54,7 @@ def request_to_join_group():
     
     existing_request = GroupJoinRequest.query.filter_by(user_id=user_id, group_id=group.id, status=GroupJoin.PENDING).first()
     if existing_request:
-        return jsonify({"error": "You already have a pending join request"}), 400
+        return jsonify({"error": "You already have a pending join request", "join_request_id": existing_request.id}), 400
     
     join_request = GroupJoinRequest(
         user_id=user_id,
@@ -75,7 +75,7 @@ def request_to_join_group():
     db.session.add(notification)
     db.session.commit()
 
-    return jsonify({"message": "Join request sent. Awaiting admin approval"}), 200
+    return jsonify({"message": "Join request sent. Awaiting admin approval", "join_request_id": join_request.id}), 200
 
 @groups_bp.route("/group/join/approve/<int:request_id>", methods=["POST"])
 @jwt_required()
@@ -134,12 +134,8 @@ def reject_join_request(request_id):
     join_request.status = GroupJoin.REJECTED
     db.session.commit()
 
-    user = User.query.get(join_request.user_id)
-    user.group_id = join_request.group_id
-    db.session.commit()
-
     notification = Notification(
-        user_id=user.id,
+        user_id=join_request.user_id,
         group_id=group.id,
         message=f"Your request to join {group.name} has been rejected.",
         type=" Join Rejection",
@@ -172,7 +168,7 @@ def leave_group():
     notification = Notification(
         user_id=group.admin_id,
         group_id=group.id,
-        message=f"{user.name} has let the group",
+        message=f"{user.name} has left the group",
         type="Member left",
         date=datetime.datetime.now(datetime.timezone.utc)
 
@@ -187,11 +183,11 @@ def leave_group():
 def get_group_members():
     """Fetches all members of the logged-in user's group
     """
-    user_id = get_jwt_identity
+    user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
     if not user.group_id:
-        return jsonify({"error": "Youb are not in a group"}), 400
+        return jsonify({"error": "You are not in a group"}), 400
     
     members = User.query.filter_by(group_id=user.group_id).all()
 
@@ -205,15 +201,16 @@ def get_group_members():
     ]), 200
 
 
-
+@groups_bp.route("/groups", methods=["GET"])
+@jwt_required()
 def get_groups():
     """Fetches all existing groups
     """
-    groups = Group.get.all()
+    groups = Group.query.all()
 
-    return jsonify({
-        "id": group.id,
-        "name": group.name
-    } for group in groups
-    )
+    return jsonify([
+        {"id": group.id,
+        "name": group.name}
+        for group in groups
+    ])
 

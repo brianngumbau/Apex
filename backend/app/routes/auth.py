@@ -3,17 +3,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, TokenBlacklist, Group
 from flask_jwt_extended import create_access_token
 from utils.jwt_handler import decode_jwt
+from utils.helpers import format_phone_number
 from flask import Blueprint
 
 
 auth_bp = Blueprint('auth', __name__)
 
-def format_phone_number(phone):
-    """"Ensure the phone number is in 254xxxxxxxxx format"""
-    phone = phone.strip().replace(" ", "")
-    if not phone.startswith("254"):
-        phone = f"254{phone[-9:]}"
-    return phone if len(phone) == 13 else None
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
@@ -25,7 +20,7 @@ def register():
     
     formatted_phone = format_phone_number(data["phone"])
     if not formatted_phone:
-        return jsonify({"error": "Invalid phone number format. Use +2547xxxxxxxx"}), 400
+        return jsonify({"error": "Invalid phone number format. Use 2547xxxxxxxx"}), 400
 
     if User.query.filter((User.email == data["email"]) | (User.phone == formatted_phone)).first():
         return jsonify({"error": "User with email or phone already exists"}), 409

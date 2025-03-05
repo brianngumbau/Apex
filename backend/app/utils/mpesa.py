@@ -4,6 +4,7 @@ import base64
 import logging
 from models import Group, User, WithdrawalRequest, db
 from config import Config
+from routes.auth import format_phone_number
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -59,9 +60,9 @@ def initiate_stk_push(user_id, amount):
     if not group:
         return {"error": "User belongs to no group"}
     
-    phone_number = user.phone
-    if not phone_number.startswith("254"):
-        phone_number = f"254{phone_number[-9:]}"
+    phone_number = format_phone_number(user.phone)
+    if not phone_number:
+        return ({"error": "Invalid phone number format"}), 400
 
     # Generate password for STK Push
     password, timestamp = generate_password()

@@ -42,14 +42,14 @@ def withdraw_request():
     # Compute available balance
     total_contributions = db.session.query(db.func.sum(Contribution.amount)).filter_by(group_id=group_id).scalar() or 0
     total_withdrawals = db.session.query(db.func.sum(Transaction.amount)).join(
-        WithdrawalRequest, WithdrawalRequest.transaction_id == Transaction.id
-    ).filter(Transaction.type == TransactionType.DEBIT, WithdrawalRequest.status == WithdrawalStatus.COMPLETED, Transaction.group_id == group_id).scalar() or 0
+        WithdrawalRequest, WithdrawalRequest.transaction_id == Transaction.id, isouter=True
+    ).filter(Transaction.type == TransactionType.DEBIT, db.or_(WithdrawalRequest.status == WithdrawalStatus.COMPLETED, WithdrawalRequest.status.is_(None)), Transaction.group_id == group_id).scalar()
 
-    available_balance = total_contributions - total_withdrawals
+    available_balance = total_contributions - float(total_withdrawals or 0)
 
     if amount > available_balance:
         logger.info(f"withdrawal request denied due to insufficient funds. Group ID: {group_id}, Requested: {amount}, Available: {available_balance}")
-        return jsonify({"error": "Insufficient funds in the group account"}), 400
+        return jsonify({"error": f"Insufficient funds in the group account. Available {available_balance}"}), 400
 
     # Create a withdrawal transaction
     try:
@@ -147,19 +147,21 @@ def approve_withdrawal(transaction_id):
         return jsonify({"error": "Withdrawal request not found or already processed"}), 404
 
     # Check if user has already voted
-    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id).first()
+    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=withdrawal.id, group_id=group_id).first()
     if existing_vote:
         return jsonify({"error": "You have already voted"}), 400
 
     # Register approval vote
-    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id, vote="approve")
+    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=withdrawal.id, group_id=group_id, vote="approve")
     db.session.add(vote)
 
     total_approvals = db.session.query(db.func.count()).filter(
-        WithdrawalVotes.withdrawal_id == transaction_id,
+        WithdrawalVotes.withdrawal_id == withdrawal.id,
         WithdrawalVotes.group_id == group_id,
         WithdrawalVotes.vote == "approve"
     ).scalar()
+
+    withdrawal.approvals = total_approvals
 
     total_members = User.query.filter_by(group_id=group_id).count()
 
@@ -171,7 +173,7 @@ def approve_withdrawal(transaction_id):
             notification = Notification(
                 user_id=member.id,
                 group_id=group_id,
-                message=f"The withdrawal request of ksh {withdrawal.amount} has been approved",
+                message=f"The withdrawal request of ksh {withdrawal.transaction.amount} has been approved",
                 type="Withdrawal request approval",
                 date=datetime.datetime.now(datetime.timezone.utc)
             )
@@ -207,20 +209,22 @@ def reject_withdrawal(transaction_id):
         return jsonify({"error": "Withdrawal request not found or already processed"}), 404
 
     # Check if user has already voted
-    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id).first()
+    existing_vote = WithdrawalVotes.query.filter_by(user_id=user_id, withdrawal_id=withdrawal.id, group_id=group_id).first()
     if existing_vote:
         return jsonify({"error": "You have already voted"}), 400
 
     # Register rejection vote
-    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=transaction_id, group_id=group_id, vote="reject")
+    vote = WithdrawalVotes(user_id=user_id, withdrawal_id=withdrawal.id, group_id=group_id, vote="reject")
     db.session.add(vote)
 
     total_rejections = db.session.query(db.func.count()).filter(
-        WithdrawalVotes.withdrawal_id == transaction_id,
+        WithdrawalVotes.withdrawal_id == withdrawal.id,
         WithdrawalVotes.group_id == group_id,
         WithdrawalVotes.vote == "reject"
     ).scalar()
 
+    withdrawal.rejections = total_rejections
+    
     total_members = User.query.filter_by(group_id=group_id).count()
     if total_rejections > total_members // 2:
         withdrawal.status = WithdrawalStatus.REJECTED
@@ -230,7 +234,7 @@ def reject_withdrawal(transaction_id):
             notification = Notification(
                 user_id=user_id,
                 group_id=group_id,
-                message=f"The withdrawal request of Ksh {withdrawal.amount} was rejected",
+                message=f"The withdrawal request of Ksh {withdrawal.transaction.amount} was rejected",
                 type="withdrawal request rejection",
                 date=datetime.datetime.now(datetime.timezone.utc)
             )

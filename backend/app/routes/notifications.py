@@ -12,7 +12,10 @@ def get_notifications():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
-    
+
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
+
     notifications = Notification.query.filter_by(user_id=user_id, group_id=user.group_id).order_by(Notification.date.desc()).all()
     
     return jsonify([
@@ -34,6 +37,9 @@ def get_unread_notifications():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
+
     unread_notifications = Notification.query.filter_by(user_id=user_id, group_id=user.group_id, read=False).order_by(Notification.date.desc()).all()
 
     return jsonify([
@@ -54,6 +60,9 @@ def mark_notification_as_read(notification_id):
     """ Marks a specific notification as read. """
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
     
     notification = Notification.query.filter_by(id=notification_id, user_id=user_id, group_id=user.group_id).first()
     
@@ -72,6 +81,9 @@ def mark_all_notifications_as_read():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
+
     Notification.query.filter_by(user_id=user_id, group_id=user.group_id, read=False).update({"read": True})
     db.session.commit()
 
@@ -83,6 +95,9 @@ def delete_notification(notification_id):
     """ Deletes a specific notification. """
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
     
     notification = Notification.query.filter_by(id=notification_id, user_id=user_id, group_id=user.group_id).first()
     
@@ -100,6 +115,9 @@ def clear_all_notifications():
     """ Deletes all notifications for the logged-in user. """
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
 
     Notification.query.filter_by(user_id=user_id, group_id=user.group_id).delete()
     db.session.commit()

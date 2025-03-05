@@ -18,12 +18,8 @@ def get_all_transactions():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
-    if not user:
-        logger.warning(f"Unauthorized access attempt by invalid user ID: {user_id}")
-        return jsonify({"error": "User not found"}), 404
-
-    if not user.is_admin:
-        logger.warning(f"Unauthorized access attempt by non-admin user ID: {user_id}")
+    if not user or not user.is_admin:
+        logger.warning(f"Unauthorized access attempt by non-admin user.User ID: {user_id}")
         return jsonify({"error": "Only admins can view all transactions"}), 403
 
     try:
@@ -39,6 +35,7 @@ def get_all_transactions():
                 "id": transaction.id,
                 "user_id": transaction.user_id,
                 "group_id": transaction.group_id,
+                "is_admin":User.query.get(transaction.user_id).is_admin,
                 "amount": transaction.amount,
                 "type": transaction.type.value,
                 "reason": transaction.reason,

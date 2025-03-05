@@ -49,32 +49,30 @@ def log_contribution(user_id, amount, receipt_number):
             reference=receipt_number
         )
 
-        user.monthly_total += amount
-        if user.group_id:
-            notification = Notification(
-                user_id=user_id,
-                group_id=user.group_id,
-                message=f"Your contribution of ksh {amount} has been received",
-                type="Contribution",
-                date=datetime.datetime.now(datetime.timezone.utc)
-            )
-            db.session.add(notification)
-
+        user.monthly_total += amount      
+        notification = Notification(
+            user_id=user_id,
+            group_id=user.group_id,
+            message=f"Your contribution of ksh {amount} has been received",
+            type="Contribution",
+            date=datetime.datetime.now(datetime.timezone.utc)
+        )
         db.session.add(contribution)
         db.session.add(transaction)
+        db.session.add(notification)
         db.session.commit()
 
         logger.info(f"Contribution logged successfully: User {user_id}, Amount {amount}, Receipt {receipt_number}")
-        return jsonify({
+        return {
             "message": "Contribution logged successfully!",
             "contribution_id": contribution.id,
             "transaction_id": transaction.id,
-        }), 201
+        }, 201
 
     except Exception as e:
         db.session.rollback()
         logger.error(f"Database error while logging contribution for user {user_id}: {str(e)}")
-        return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
+        return {"error": "An unexpected error occurred. Please try again later."}, 500
 
 
 @contributions_bp.route('/contribute', methods=['POST'])

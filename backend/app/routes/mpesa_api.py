@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification
 from utils.mpesa import initiate_stk_push, initiate_b2c_payment
 from routes.contributions import log_contribution
+from utils.helpers import format_phone_number
 import logging
 import datetime
 
@@ -26,8 +27,8 @@ def stk_push():
     if not user:
         return jsonify({"error": "User not found"}), 404
     
-    phone_number = user.phone.strip()
-    if not phone_number.startswith("254"):
+    phone_number = format_phone_number(user.phone)
+    if not phone_number:
         return jsonify({"error": "Invalid phone number format"}), 400
     
     logger.info(f"Initiating STK push for user {user_id}, Amount: {amount}")
@@ -49,10 +50,13 @@ def stk_push():
     return jsonify({"message": "STK push failed", "error": response}), 400
 
 
-@mpesa_bp.route("/mpesa/callback", methods=["POST"])
+@mpesa_bp.route("/callback/transaction", methods=["POST"])
 def mpesa_callback():
     """ Handles M-Pesa callback and logs contributions. """
     data = request.get_json()
+
+    logger.info(f"Full M-Pesa Callback Data: {data}")
+
     callback_body = data.get("Body", {})
     stk_callback = callback_body.get("stkCallback", {})
 
@@ -93,16 +97,6 @@ def mpesa_callback():
     # Log contribution using the helper function
     response, status_code = log_contribution(user.id, amount, receipt_number)
 
-    notification = Notification(
-        user_id=user.id,
-        group_id=user.group_id,
-        message=f"Your contribution of Ksh {amount} via M-pesa has been received",
-        type="Mpesa contribution",
-        date=datetime.datetime.now(datetime.timezone.utc)
-
-    )
-    db.session.add(notification)
-    db.session.commit()
     return jsonify(response), status_code
 
 
@@ -125,8 +119,8 @@ def process_withdrawal():
     if not admin or not admin.is_admin:
         return jsonify({"error": "Invalid admin details"}), 400
     
-    phone_number = admin.phone.strip()
-    if not phone_number.startswith("254"):
+    phone_number = format_phone_number(admin.phone)
+    if not phone_number:
         return jsonify({"error": "Invalid admin phone number format"}), 400
     
     logger.info(f"Processing withdrawal {withdrawal_request_id} for admin {admin.id}")
@@ -134,11 +128,22 @@ def process_withdrawal():
     try:
         response = initiate_b2c_payment(
         user_id=admin.id,
-        phone_number=admin.phone,
+        phone_number=phone_number,
         amount=transaction.amount,
         reason=transaction.reason,
         withdrawal_request_id=withdrawal_request_id
         )
+
+        originator_conversation_id = response.get("OriginatorConversationID")
+
+        if not originator_conversation_id:
+            logger.error("B2C payment initiated but no OriginatorConversationID returned")
+            return jsonify({"error": "B2C payment failed: No transactionID returned"}), 500
+
+        withdrawal.mpesa_transaction_id = originator_conversation_id
+        db.session.commit()
+
+        logger.info(f"Updated withdrawal {withdrawal.id} with M-Pesa transaction ID {originator_conversation_id}")
     except Exception as e:
         logger.error(f"B2c payment failed: {str(e)}")
         return jsonify({"error": "B2C payment failed", "details": str(e)}), 500
@@ -146,7 +151,7 @@ def process_withdrawal():
     return jsonify(response), 200
 
 
-@mpesa_bp.route("/mpesa/b2c/callback", methods=["POST"])
+@mpesa_bp.route("/callback/b2c/result", methods=["POST"])
 def b2c_callback():
     """ Handles M-Pesa B2C callback and updates withdrawal status. """
     data = request.get_json()
