@@ -10,9 +10,11 @@ from routes.withdrawals import withdrawal_bp
 from routes.mpesa_api import mpesa_bp
 from routes.groups import groups_bp
 from routes.notifications import notifications_bp
+from flask_cors import CORS
 
 jwt = JWTManager()
 app = Flask(__name__)
+CORS(app)
 
 app.config.from_object(get_config())
 db.init_app(app)

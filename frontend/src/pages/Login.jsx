@@ -1,6 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 function Login() {
     const {
@@ -9,9 +10,32 @@ function Login() {
         formState: { errors },
     } = useForm();
 
-    const onSubmit = (data) => {
+    const onSubmit = async (data) => {
         console.log("Login Data:", data);
-        // TODO: send login request to backend logic API
+        //send login request to backend logic API
+        try {
+            const response = await axios.post("http://127.0.0.1:5000/login", {
+                email: data.email,
+                password: data.password,
+            });
+            console.log("Login success:", response.data);
+            alert("Login successful!");
+
+            // TODO: redirect to dashboard/home
+
+            // Store token in localStorage (optional)
+            localStorage.setItem("token", response.data.access_token);
+            localStorage.setItem("user_id", response.data.user_id);
+
+        } catch (error) {
+            if (error.message) {
+                console.error("Login error:", error.response.data);
+                alert(error.response.data.error || "Login failed");
+            } else {
+                console.error("Error:", error.message);
+                alert("An error occurred. Try again later.");
+            }
+        }
     };
 
     const handleGoogleLogin = () => {

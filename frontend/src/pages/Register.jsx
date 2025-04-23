@@ -1,6 +1,8 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Register() {
   const {
@@ -10,9 +12,33 @@ function Register() {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = (data) => {
+  const navigate = useNavigate();
+
+  const onSubmit = async (data) => {
     console.log("Registration Data:", data);
-    // TODO: Send POST request to /register endpoint using Axios
+    //Send POST request to /register endpoint using Axios
+    try {
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        password: data.password,
+      };
+
+      const response = await axios.post("http://127.0.0.1:5000/register", payload);
+      console.log("Registration successful:", response.data);
+      alert("Account created successfully! You can now log in.")
+      navigate("/login");
+    } catch (error) {
+      console.error("Full error object:", error)
+      if (error.response) {
+        console.error("Registration error:", error.response.data);
+        alert(error.response.data.error || "Registration failed");
+      } else {
+        console.error("Error:", error.message);
+        alert("An error occurred. Try again later.");
+      }
+    }
   };
 
   const handleGoogleSignup = () => {
