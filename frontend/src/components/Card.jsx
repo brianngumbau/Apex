@@ -1,9 +1,12 @@
+import React from "react";
+
+
 export default function Profile() {
     return (
       <div class="card">
 
-        // Use a default avatar
-         <img src="assets\circle-user-solid.svg" alt="Avatar" style="width:100%"/>
+        
+         <img src="assets\circle-user-solid.svg" alt="Avatar" />
 
           <div class="container">
             <h4><b>User Name</b></h4>
