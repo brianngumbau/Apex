@@ -1,18 +1,16 @@
 import React from 'react';
 import {NavLink} from "react-router-dom";
-import ReactDOM from 'react-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHouse  } from '@fortawesome/free-solid-svg-icons'
 import { faUser } from '@fortawesome/free-solid-svg-icons'
 import { faUsers } from '@fortawesome/free-solid-svg-icons'
-import { faGear } from '@fortawesome/free-solid-svg-icons'
 
 const NavLinks = () => {
   return (
     <>
-    <NavLink to="/pages/Dashboard.jsx"> <FontAwesomeIcon icon={faHouse} /> </NavLink>
-    <NavLink to="/pages/Group.jsx"><FontAwesomeIcon icon={faUsers} /> </NavLink>
-    <NavLink to="/pages/Profile.jsx"><FontAwesomeIcon icon={faUser} /> </NavLink>
+    <NavLink to="profile"> <FontAwesomeIcon icon={faUser} /> </NavLink>
+    <NavLink to="dashboard"><FontAwesomeIcon icon={faHouse} /> </NavLink>
+    <NavLink to="group"><FontAwesomeIcon icon={faUsers} /> </NavLink>
     </>
   )
     
@@ -22,11 +20,16 @@ const NavLinks = () => {
 
 const Nav = () => {
 return (
-  <nav className="w-1/3 fixed bottom-0 bg-white border-t border-gray-200 shadow-lg inline-flex justify-between items-center p-4">
-  <div className="flex justify-between">
-  <NavLinks />
+ 
+  <div className='fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600'>
+      <nav className="md:max-lg bg-white border-t border-gray-200 shadow-lg justify-between p-3">
+          <div className="flex justify-between">
+          <NavLinks />
+          </div>
+      </nav>
   </div>
-  </nav>
+
+
 
 )
  
