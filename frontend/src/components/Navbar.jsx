@@ -8,9 +8,9 @@ import { faUsers } from '@fortawesome/free-solid-svg-icons'
 const NavLinks = () => {
   return (
     <>
-    <NavLink to="profile"> <FontAwesomeIcon icon={faUser} /> </NavLink>
-    <NavLink to="dashboard"><FontAwesomeIcon icon={faHouse} /> </NavLink>
-    <NavLink to="group"><FontAwesomeIcon icon={faUsers} /> </NavLink>
+    <NavLink to="/profile"  className={({ isActive }) => isActive ? "text-gray-500" : ""}> <FontAwesomeIcon icon={faUser} /> </NavLink>
+    <NavLink to="/dashboard"  className={({ isActive }) => isActive ? "text-gray-500" : ""}><FontAwesomeIcon icon={faHouse} /> </NavLink>
+    <NavLink to="/group"  className={({ isActive }) => isActive ? "text-gray-500" : ""}><FontAwesomeIcon icon={faUsers} /> </NavLink>
     </>
   )
     
