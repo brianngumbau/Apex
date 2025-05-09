@@ -1,5 +1,7 @@
 @import "tailwindcss";
 body {
     background-color: rgb(255, 255, 255); /* tEMPORARY */ 
+    font-family: quicksand, sans-serif;
+    
 }
 
