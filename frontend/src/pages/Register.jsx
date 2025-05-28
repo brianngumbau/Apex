@@ -1,10 +1,10 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link,useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 function Register() {
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -12,7 +12,6 @@ function Register() {
     formState: { errors },
   } = useForm();
 
-  const navigate = useNavigate();
 
   const onSubmit = async (data) => {
     console.log("Registration Data:", data);

@@ -1,9 +1,10 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Login() {
+    const navigate = useNavigate();
     const {
         register,
         handleSubmit,
@@ -19,13 +20,14 @@ function Login() {
                 password: data.password,
             });
             console.log("Login success:", response.data);
-            alert("Login successful!");
-
-            // TODO: redirect to dashboard/home
-
-            // Store token in localStorage (optional)
+            // Store token in localStorage
             localStorage.setItem("token", response.data.access_token);
             localStorage.setItem("user_id", response.data.user_id);
+            alert("Login successful!");
+
+            // redirect to dashboard/home
+            navigate("/dashboard");
+
 
         } catch (error) {
             if (error.message) {

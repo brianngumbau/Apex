@@ -21,7 +21,7 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
 export default function ProminentAppBar() {
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" color="gray" enableColorOnDark>
+      <AppBar position="static" color="default" enableColorOnDark>
         <StyledToolbar>
           <IconButton
             size="large"
