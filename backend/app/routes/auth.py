@@ -1,7 +1,7 @@
 from flask import request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, TokenBlacklist, Group
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from utils.jwt_handler import decode_jwt
 from utils.helpers import format_phone_number
 from flask import Blueprint
@@ -90,3 +90,29 @@ def logout():
     db.session.commit()
 
     return jsonify({"message": "Logged out successfully"}), 200
+
+@auth_bp.route("/user/profile", methods=["GET"])
+@jwt_required()
+def get_user_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    group_name = None
+    if user.group_id:
+        group = Group.query.get(user.group_id)
+        if group:
+            group_name = group.name
+
+    return jsonify({
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "phone": user.phone,
+        "is_admin": user.is_admin,
+        "group_id": user.group_id,
+        "group_name": group_name,
+        "monthly_total": user.monthly_total
+    }), 200

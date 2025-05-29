@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import Dashboard from "./pages/Dashboard";
 
 console.log("App.jsx is running!");
 
@@ -13,14 +14,11 @@ function App() {
     <Router>
       <Routes>
         {/* Public Routes */}
+         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/"
-          element={<LandingPage />}
-        />
         <Route
           path="/dashboard"
           element={
