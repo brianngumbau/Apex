@@ -137,11 +137,11 @@ def get_total_contributions():
 
         if not user:
             logger.warning(f"User {user_id} not found while fetching total contributions.")
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"total_contributions": 0}), 200
 
         if not user.group_id:
             logger.warning(f"User {user_id} is not in any group while fetching total contributions.")
-            return jsonify({"error": "User is not in any group"}), 400
+            return jsonify({"total_contributions": 0}), 200
 
         total = db.session.query(db.func.sum(Contribution.amount)).filter_by(group_id=user.group_id).scalar() or 0
 

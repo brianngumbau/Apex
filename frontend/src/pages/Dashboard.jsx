@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
+import AccountSummary from "../components/AccountSummary";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -35,14 +36,25 @@ function Dashboard() {
   return (
     <>
       <ProminentAppBar />
-      <main className="p-6 text-center">
-        <h1 className="text-2xl font-bold text-blue-600 mb-4">Welcome, {user?.name}</h1>
-        <div className="bg-white p-4 rounded shadow max-w-md mx-auto space-y-2">
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p><strong>Phone:</strong> {user?.phone}</p>
-          <p><strong>Monthly Total:</strong> KES {user?.monthly_total?.toFixed(2)}</p>
-          <p><strong>Group:</strong> {user?.group_id ? `Group ID ${user.group_id}` : "Not in a group"}</p>
-        </div>
+      <main className="p-6 text-center space-y-6">
+        <h1 className="text-2xl font-bold text-blue-600 mb-4">
+          Welcome, {user?.name?.split(" ")[0]}
+        </h1>
+
+        {/*  Account Summary */}
+        <AccountSummary
+        userMonthlyTotal={user?.monthly_total}
+        groupName={user?.group_name}
+         />
+
+        {/*
+          - ContributionStreakTable
+          - PendingWithdrawals
+          - PieChart
+          - QuickActionButtons
+          - Notifications
+        */}
+
       </main>
       <Nav />
     </>
