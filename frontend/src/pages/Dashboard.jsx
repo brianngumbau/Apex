@@ -3,6 +3,7 @@ import axios from "axios";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 import AccountSummary from "../components/AccountSummary";
+import ContributionStreakTable from "../components/ContributionStreakTable";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -47,8 +48,10 @@ function Dashboard() {
         groupName={user?.group_name}
          />
 
-        {/*
-          - ContributionStreakTable
+
+        {/* ContributionStreakTable */}
+        <ContributionStreakTable />
+        {/* 
           - PendingWithdrawals
           - PieChart
           - QuickActionButtons
