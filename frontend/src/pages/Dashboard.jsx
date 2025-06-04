@@ -4,6 +4,8 @@ import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 import AccountSummary from "../components/AccountSummary";
 import ContributionStreakTable from "../components/ContributionStreakTable";
+import PendingWithdrawals from "../components/PendingWithdrawals";
+import ContributionPieChart from "../components/ContributionsPieChart";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -51,8 +53,11 @@ function Dashboard() {
 
         {/* ContributionStreakTable */}
         <ContributionStreakTable />
+        {/* Pending withdrawals*/}
+        <PendingWithdrawals />
+        {/*Pie chart*/}
+        <ContributionPieChart />
         {/* 
-          - PendingWithdrawals
           - PieChart
           - QuickActionButtons
           - Notifications
