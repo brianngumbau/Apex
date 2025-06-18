@@ -11,6 +11,7 @@ import GroupPage from './pages/GroupPage';
 console.log("App.jsx is running!");
 
 function App() {
+  
   return (
     <Router>
       <Routes>
