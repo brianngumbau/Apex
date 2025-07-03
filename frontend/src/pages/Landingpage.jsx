@@ -3,10 +3,10 @@ import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 
 function Landingpage() {
-  console.log("Landing page Rendered!");
+  
   return (
     <>
-      <ProminentAppBar />
+      < ProminentAppBar />
 
       <main className="flex flex-col items-center px-4 py-6 space-y-10 bg-gray-100 text-center pb-20">
 
@@ -39,7 +39,7 @@ function Landingpage() {
         <section className="text-center">
           <h3 className="italic font-semibold">POWERED BY</h3>
           <div className="flex justify-center items-center gap-10 mt-4">
-            <img src="/cma.png" alt="CMA" className="w-20" />
+            <img src="/cj2.jpg" alt="CMA" className="w-20" />
             <img src="/safaricom.png" alt="Safaricom" className="w-20" />
           </div>
         </section>
