@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Nav from "../components/Navbar";
+import ProminentAppBar from "../components/header";
 
 const BACKEND_URL = "http://127.0.0.1:5000"; // replace with actual backend base URL
 
@@ -113,6 +114,8 @@ export default function GroupPage() {
   }, [token]);
 
   return (
+    <>
+          <ProminentAppBar />
     <div className="max-w-4xl mx-auto mt-10 space-y-8 px-4">
       <h1 className="text-3xl font-bold text-center text-gray-800">Groups</h1>
 
@@ -166,7 +169,7 @@ export default function GroupPage() {
       {/* Group Members */}
       {members.length > 0 && (
         <div className="bg-white p-6 rounded shadow">
-          <h2 className="text-xl font-semibold mb-4">Your Group Members</h2>
+          <h2 className="text-xl font-semibold mb-4">Group Members</h2>
           <ul className="divide-y">
             {members.map((member) => (
               <li key={member.id} className="py-2 flex justify-between">
@@ -187,5 +190,6 @@ export default function GroupPage() {
       )}
       <Nav />
     </div>
+    </>
   );
 }
