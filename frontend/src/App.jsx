@@ -9,6 +9,9 @@ import Dashboard from "./pages/Dashboard";
 import GroupPage from './pages/GroupPage';
 import NotificationsPage from './pages/Notifications';
 import ContributePage from "./pages/ContributePage";
+import RepayPage from "./pages/RepayPage";
+import BorrowPage from "./pages/BorrowPage";
+import CreateGroupPage from "./pages/CreateGroupPage";
 
 console.log("App.jsx is running!");
 
@@ -26,6 +29,10 @@ function App() {
         <Route path="/group" element={<GroupPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/contribute" element={<ContributePage />} />
+        <Route path="/repay" element={<RepayPage />} />
+        <Route path="/borrow" element={<BorrowPage />} />
+        <Route path="/group/create" element={<CreateGroupPage />} />
+
 
         {/* Protected Routes */}
         <Route

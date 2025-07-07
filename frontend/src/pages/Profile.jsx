@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Nav from '../components/Navbar';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser } from '@fortawesome/free-solid-svg-icons';
+import ProminentAppBar from "../components/header";
 
 export default function Profile() {
   const [name, setName] = useState("");
@@ -17,6 +18,7 @@ export default function Profile() {
 
   return (
     <>
+      <ProminentAppBar />
       <div className="container text-center mt-10">
         <label className="cursor-pointer inline-block bg-gray-200 rounded-full p-6">
           {avatar ? (

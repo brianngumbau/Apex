@@ -57,7 +57,7 @@ function ContributionStreakTable() {
 
   return (
     <div className="bg-white shadow rounded p-4 mb-6 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold mb-2 text-blue-600">Contribution Streak</h2>
+      <h2 className="text-lg font-semibold mb-2 text-black-600">Contribution Streak</h2>
       <table className="min-w-full text-sm text-left">
         <thead>
           <tr className="text-gray-600 border-b">

@@ -4,14 +4,10 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import MoreIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
-
-// 👇 Replace with your actual logo import or image URL
-// import CompanyLogo from '../assets/logo.png'; // or use a public path
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   alignItems: 'flex-start',
@@ -39,7 +35,7 @@ export default function ProminentAppBar() {
     handleMenuClose();
   };
 
-  const isLoggedIn = Boolean(localStorage.getItem("token")); // adjust if using context
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
 
   const handleLoginLogout = () => {
     if (isLoggedIn) {
@@ -58,7 +54,7 @@ export default function ProminentAppBar() {
           {/* ✅ Company Logo */}
           <Box sx={{ mr: 2, mt: 0.5 }}>
             <img
-              src="cj2.jpg" // Replace with your logo path
+              src="cj2.jpg"
               alt="Company Logo"
               style={{ height: 40, cursor: 'pointer' }}
               onClick={() => navigate("/")}
@@ -67,7 +63,7 @@ export default function ProminentAppBar() {
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* ✅ Menu Icon */}
+          {/* ✅ Menu Button */}
           <IconButton
             size="large"
             aria-label="display more actions"
@@ -78,19 +74,13 @@ export default function ProminentAppBar() {
             <MoreIcon />
           </IconButton>
 
-          {/* ✅ Dropdown Menu */}
+          {/* ✅ Dropdown Menu Items */}
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
             <MenuItem onClick={() => handleNavigation("/notifications")}>
               Notifications
@@ -104,6 +94,11 @@ export default function ProminentAppBar() {
             <MenuItem onClick={() => handleNavigation("/repay")}>
               Repay Loan
             </MenuItem>
+
+            <MenuItem onClick={() => handleNavigation("/group/create")}>
+              Create Group
+            </MenuItem>
+
             <MenuItem onClick={handleLoginLogout}>
               {isLoggedIn ? "Logout" : "Login"}
             </MenuItem>
