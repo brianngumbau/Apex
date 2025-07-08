@@ -32,7 +32,7 @@ function ContributionPieChart() {
 
   return (
     <div className="bg-white shadow rounded p-4 mb-6 max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-4 text-blue-600">Contribution Overview</h2>
+      <h2 className="text-lg font-semibold mb-4 text-black-600">Contribution Overview</h2>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie

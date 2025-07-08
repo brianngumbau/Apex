@@ -31,7 +31,7 @@ function AccountSummary({ userMonthlyTotal, groupName }) {
 
   return (
     <div className="bg-white shadow rounded p-4 mb-6 max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-2 text-blue-600">Account Summary</h2>
+      <h2 className="text-lg font-semibold mb-2 text-black-600">Account Summary</h2>
       <div className="text-sm text-gray-700 space-y-1">
         <p><strong>Your Monthly Total:</strong> KES {userMonthlyTotal?.toFixed(2)}</p>
         <p><strong>Group:</strong> {groupName || "No group joined"}</p>

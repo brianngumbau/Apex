@@ -41,7 +41,7 @@ function Dashboard() {
     <>
       <ProminentAppBar />
       <main className="p-6 text-center space-y-6">
-        <h1 className="text-2xl font-bold text-blue-600 mb-4">
+        <h1 className="text-2xl font-bold text-black-600 mb-4">
           Welcome, {user?.name?.split(" ")[0]}
         </h1>
 
