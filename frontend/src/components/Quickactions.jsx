@@ -9,7 +9,7 @@ function QuickActions() {
       <h2 className="text-lg font-semibold mb-4 text-blue-600">Quick Actions</h2>
       <div className="flex flex-col gap-3">
         <button
-          onClick={() => navigate("/mpesa")}
+          onClick={() => navigate("/contribute")}
           className="bg-green-500 text-white py-2 rounded hover:bg-green-600 transition"
         >
           Contribute Now

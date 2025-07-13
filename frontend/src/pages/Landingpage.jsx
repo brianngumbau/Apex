@@ -61,8 +61,6 @@ function Landingpage() {
           <p className="mt-4 text-xs">Copyrights © 2025 Concrete Jungle Holdings</p>
         </footer>
       </main>
-
-      <Nav />
     </>
   );
 }
