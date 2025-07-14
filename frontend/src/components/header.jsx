@@ -54,7 +54,7 @@ export default function ProminentAppBar() {
           {/* ✅ Company Logo */}
           <Box sx={{ mr: 2, mt: 0.5 }}>
             <img
-              src="cj2.jpg"
+              src="maziwa.jpg"
               alt="Company Logo"
               style={{ height: 40, cursor: 'pointer' }}
               onClick={() => navigate("/")}
