@@ -6,6 +6,7 @@ import AccountSummary from "../components/AccountSummary";
 import ContributionStreakTable from "../components/ContributionStreakTable";
 import PendingWithdrawals from "../components/PendingWithdrawals";
 import ContributionPieChart from "../components/ContributionsPieChart";
+import QuickActions from "../components/Quickactions"
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -57,9 +58,9 @@ function Dashboard() {
         <PendingWithdrawals />
         {/*Pie chart*/}
         <ContributionPieChart />
+        {/* Quick actions */}
+        <QuickActions />
         {/* 
-          - PieChart
-          - QuickActionButtons
           - Notifications
         */}
 

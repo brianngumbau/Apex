@@ -95,7 +95,7 @@ export default function ProminentAppBar() {
               Repay Loan
             </MenuItem>
 
-            <MenuItem onClick={() => handleNavigation("/group/create")}>
+            <MenuItem onClick={() => handleNavigation("/create-group")}>
               Create Group
             </MenuItem>
 
