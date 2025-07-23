@@ -54,6 +54,7 @@ function Dashboard() {
 
         {/* ContributionStreakTable */}
         <ContributionStreakTable />
+        
         {/* Pending withdrawals*/}
         <PendingWithdrawals />
         {/*Pie chart*/}

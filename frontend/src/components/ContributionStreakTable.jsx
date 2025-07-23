@@ -1,95 +1,71 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
-function ContributionStreakTable() {
-  const [members, setMembers] = useState([]);
+const ContributionStreakTable = () => {
+  
+  const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
-
-  const DAILY_GOAL = 20; // Daily expected contribution in KES
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchContributions = async () => {
-      try {
-        const response = await axios.get("http://127.0.0.1:5000/contributions", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const rawData = response.data;
-        const grouped = {};
-
-        // Group by user and sum total for the current month
-        rawData.forEach(entry => {
-          const date = new Date(entry.date);
-          const now = new Date();
-          if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-            if (!grouped[entry.user_id]) {
-              grouped[entry.user_id] = { name: entry.user_name, total: 0 };
-            }
-            grouped[entry.user_id].total += entry.amount;
-          }
-        });
-
-        const result = Object.entries(grouped).map(([user_id, data]) => {
-          const streak = Math.floor(data.total / DAILY_GOAL);
-          return {
-            user_id,
-            name: data.name,
-            streak,
-          };
-        });
-
-        // Sort by streak descending
-        result.sort((a, b) => b.streak - a.streak);
-
-        setMembers(result);
-      } catch (err) {
-        console.error("Failed to fetch contributions:", err);
-      } finally {
+  
+  const fetchStreaks = async () => {
+    try {
+      const token = localStorage.getItem("token");
+     
+      if (!token) {
+        setError("Missing token");
         setLoading(false);
+        return;
       }
-    };
 
-    fetchContributions();
-  }, [token]);
+      const response = await axios.get('http://localhost:5000/contributions/streaks', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-  if (loading) return <div className="text-center">Loading streaks...</div>;
+      console.log("Fetched streaks:", response.data);
+      const sorted = response.data.sort((a, b) => b.streak - a.streak);
+      setContributors(sorted);
+    } catch (err) {
+      console.error("Error fetching streaks:", err.response?.data || err.message);
+      setError("Failed to fetch streaks.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchStreaks();
+}, []);
+
+
+  if (loading) return <p className="p-4">Loading...</p>;
+  if (error) return <p className="p-4 text-red-500">{error}</p>;
 
   return (
-    <div className="bg-white shadow rounded p-4 mb-6 max-w-2xl mx-auto">
-      <h2 className="text-lg font-semibold mb-2 text-black-600">Contribution Streak</h2>
-      <table className="min-w-full text-sm text-left">
+    <div className="bg-white shadow rounded p-4 mb-6 max-w-md mx-auto">
+      <h2 className="text-xl font-semibold mb-4">Leaderboard</h2>
+      <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
         <thead>
-          <tr className="text-gray-600 border-b">
-            <th className="py-2 px-2">#</th>
-            <th className="py-2 px-2">Name</th>
-            <th className="py-2 px-2">Streak (days)</th>
-            <th className="py-2 px-2">Progress</th>
+          <tr className="bg-gray-100 text-left">
+            <th className="py-2 px-4 border-b">Rank</th>
+            <th className="py-2 px-4 border-b">Name</th>
+            <th className="py-2 px-4 border-b">Streak (Days)</th>
           </tr>
         </thead>
         <tbody>
-          {members.map((member, idx) => {
-            const progress = (member.streak / 31) * 100;
-            return (
-              <tr key={member.user_id} className="border-b hover:bg-gray-50">
-                <td className="py-1 px-2">{idx + 1}</td>
-                <td className="py-1 px-2">{member.name}</td>
-                <td className="py-1 px-2">{member.streak} / 31</td>
-                <td className="py-1 px-2 w-full">
-                  <div className="w-full bg-gray-200 h-2 rounded">
-                    <div
-                      className="bg-green-500 h-2 rounded"
-                      style={{ width: `${Math.min(progress, 100)}%` }}
-                    />
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
+          {contributors.map((contributor, index) => (
+            <tr key={index} className="hover:bg-gray-50">
+              <td className="py-2 px-4 border-b">{index + 1}</td>
+              <td className="py-2 px-4 border-b">{contributor.name}</td>
+              <td className="py-2 px-4 border-b">{contributor.streak}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
-}
+};
 
 export default ContributionStreakTable;

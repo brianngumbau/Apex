@@ -4,6 +4,7 @@ from models import db, Contribution, Transaction, User, ContributionStatus, Tran
 import datetime
 import logging
 
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -150,3 +151,61 @@ def get_total_contributions():
     except Exception as e:
         logger.error(f"Error fetching total contributions for user {user_id}: {str(e)}")
         return jsonify({"error": "An unexpected error occurred while fetching total contributions"}), 500
+    
+# Contribution streak API
+@contributions_bp.route('/contributions/streaks', methods=['GET'])
+@jwt_required()
+def get_contribution_streaks():
+    """Return a ranked list of users in the group based on their contribution streaks (in days)."""
+    user_id = get_jwt_identity()
+    try:
+        user = User.query.get(user_id)
+
+        if not user or not user.group_id:
+            return jsonify({"error": "User not found or not in any group"}), 400
+
+        # Get all users in the same group
+        group_users = User.query.filter_by(group_id=user.group_id).all()
+
+        streaks = []
+
+        for group_user in group_users:
+            contributions = (
+                Contribution.query
+                .filter_by(user_id=group_user.id, group_id=user.group_id)
+                .order_by(Contribution.date.desc())
+                .all()
+            )
+
+            # Extract only the contribution dates
+            contribution_dates = []
+            for c in contributions:
+                dt = c.date
+                if isinstance(dt, datetime.datetime):
+                    contribution_dates.append(dt.date())
+                elif isinstance(dt, datetime.date):
+                    contribution_dates.append(dt)
+
+            # Calculate streak
+            streak = 0
+            today = datetime.date.today()
+            for i in range(len(contribution_dates)):
+                expected_date = today - datetime.timedelta(days=streak)
+                if expected_date in contribution_dates:
+                    streak += 1
+                else:
+                    break
+
+            streaks.append({
+                "name": group_user.name,
+                "streak": streak
+            })
+
+        # Sort by streak descending
+        sorted_streaks = sorted(streaks, key=lambda x: x["streak"], reverse=True)
+
+        return jsonify(sorted_streaks), 200
+
+    except Exception as e:
+        logger.error(f"Error generating contribution streaks: {str(e)}")
+        return jsonify({"error": "An unexpected error occurred"}), 500
