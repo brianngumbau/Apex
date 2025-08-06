@@ -18,14 +18,14 @@ const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   },
 }));
 
-export default function ProminentAppBar() {
+export default function LandingPageAppBar() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
@@ -37,13 +37,19 @@ export default function ProminentAppBar() {
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
 
-  const handleLoginLogout = () => {
-    if (isLoggedIn) {
-      localStorage.removeItem("token");
-      navigate("/login");
-    } else {
-      navigate("/login");
-    }
+  const handleLogin = () => {
+    navigate("/login");
+    handleMenuClose();
+  };
+
+  const handleRegister = () => {
+    navigate("/register");
+    handleMenuClose();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
     handleMenuClose();
   };
 
@@ -82,21 +88,14 @@ export default function ProminentAppBar() {
             anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
-            <MenuItem onClick={() => handleNavigation("/notifications")}>
-              Notifications
-            </MenuItem>
-            
-            <MenuItem onClick={() => handleNavigation("/FinanceUtilities")}>
-             Finance Utilities
-            </MenuItem>
-
-            <MenuItem onClick={() => handleNavigation("/create-group")}>
-              Create Group
-            </MenuItem>
-
-            <MenuItem onClick={handleLoginLogout}>
-              {isLoggedIn ? "Logout" : "Login"}
-            </MenuItem>
+            {isLoggedIn ? (
+              <MenuItem onClick={handleLogout}>Logout</MenuItem>
+            ) : (
+              <>
+                <MenuItem onClick={handleLogin}>Login</MenuItem>
+                <MenuItem onClick={handleRegister}>Register</MenuItem>
+              </>
+            )}
           </Menu>
         </StyledToolbar>
       </AppBar>

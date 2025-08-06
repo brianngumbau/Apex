@@ -1,12 +1,11 @@
 import React from "react";
-import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
+import LandingPageAppBar from "../components/LandingPageHeader";
 
 function Landingpage() {
   
   return (
     <>
-      < ProminentAppBar />
+      <LandingPageAppBar />
 
       <main className="flex flex-col items-center px-4 py-6 space-y-10 bg-gray-100 text-center pb-20">
 
