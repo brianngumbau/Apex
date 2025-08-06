@@ -1,58 +1,76 @@
-import React, { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from "recharts";
-import axios from "axios";
+import React, { useEffect, useState } from 'react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import axios from 'axios';
+import { Card, CardContent, Typography } from '@mui/material';
 
-const COLORS = ["#4CAF50", "#FF5722"]; // green for PAID, red for MISSING
+const COLORS = ['#4ade80', '#f87171']; // green = current, red = missing
 
-function ContributionPieChart() {
-  const [data, setData] = useState([]);
-  const token = localStorage.getItem("token");
+const PieChartComponent = () => {
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     const fetchContributions = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:5000/contributions", {
-          headers: { Authorization: `Bearer ${token}` },
+        const res = await axios.get('/contributions', {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`, // Or from context
+          },
         });
 
-        const paid = res.data.filter((c) => c.status === "PAID").length;
-        const missing = res.data.filter((c) => c.status === "MISSING").length;
+        const contributions = res.data;
 
-        setData([
-          { name: "Paid", value: paid },
-          { name: "Missing", value: missing },
-        ]);
+        // Compute expected months (based on start of year)
+        const currentMonth = new Date().getMonth() + 1;
+        const expectedContributions = currentMonth;
+
+        const actualContributions = contributions.length;
+
+        const chartData = [
+          { name: 'Paid', value: actualContributions },
+          { name: 'Missing', value: Math.max(expectedContributions - actualContributions, 0) },
+        ];
+
+        setData(chartData);
       } catch (err) {
-        console.error("Failed to fetch contribution data", err);
+        console.error('Failed to load contributions:', err);
       }
     };
 
     fetchContributions();
-  }, [token]);
+  }, []);
+
+  if (!data) return <div className="text-center py-10">Loading chart...</div>;
 
   return (
-    <div className="bg-white shadow rounded p-4 mb-6 max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-4 text-black-600">Contribution Overview</h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            label
-            outerRadius={90}
-            dataKey="value"
-          >
-            {data.map((entry, idx) => (
-              <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+    <Card className="shadow-md">
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Contribution Overview
+        </Typography>
+        <div className="w-full h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                outerRadius={100}
+                dataKey="value"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
-}
+};
 
-export default ContributionPieChart;
+export default PieChartComponent;

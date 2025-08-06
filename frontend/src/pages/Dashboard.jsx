@@ -59,8 +59,7 @@ function Dashboard() {
         <PendingWithdrawals />
         {/*Pie chart*/}
         <ContributionPieChart />
-        {/* Quick actions */}
-        <QuickActions />
+        
         {/* 
           - Notifications
         */}
