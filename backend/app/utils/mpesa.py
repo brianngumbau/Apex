@@ -78,8 +78,8 @@ def initiate_stk_push(user_id, amount):
         "PartyB": MPESA_SHORTCODE, 
         "PhoneNumber": phone_number,
         "CallBackURL": MPESA_CALLBACK_URL,
-        "AccountReference": f"Contribution-{user.id}-{group.id}",
-        "TransactionDesc": "Contribution Payment"
+        "AccountReference": account_reference or f"Contribution-{user.id}-{group.id}",
+        "TransactionDesc": transaction_desc or "Contribution Payment"
     }
 
     try:

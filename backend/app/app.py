@@ -10,6 +10,7 @@ from routes.withdrawals import withdrawal_bp
 from routes.mpesa_api import mpesa_bp
 from routes.groups import groups_bp
 from routes.notifications import notifications_bp
+from routes.loans import loan_bp
 from flask_cors import CORS
 
 jwt = JWTManager()
@@ -27,6 +28,7 @@ app.register_blueprint(withdrawal_bp)
 app.register_blueprint(mpesa_bp)
 app.register_blueprint(groups_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(loan_bp)
 
 
 migrate = Migrate(app, db)

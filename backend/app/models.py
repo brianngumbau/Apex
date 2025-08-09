@@ -24,6 +24,14 @@ class GroupJoin(Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
 
+class LoanStatus(Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DISBURSED = "disbursed"
+    REPAID = "repaid"
+    PARTIALLY_REPAID = "partially_repaid"
+    REJECTED = "rejected"
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -121,3 +129,19 @@ class GroupJoinRequest(db.Model):
 
     user = db.relationship("User", backref="join_requests")
     group = db.relationship("Group", backref="join_requests")
+
+
+
+class Loan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    outstanding = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Enum(LoanStatus), default=LoanStatus.PENDING, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc), nullable=False)
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # admin who approved
+    disbursed_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('loans', lazy=True))
+    group = db.relationship('Group', backref=db.backref('loans', lazy=True))

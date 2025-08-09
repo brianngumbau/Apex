@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification
+from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus
 from utils.mpesa import initiate_stk_push, initiate_b2c_payment
 from routes.contributions import log_contribution
 from utils.helpers import format_phone_number
@@ -52,7 +52,7 @@ def stk_push():
 
 @mpesa_bp.route("/callback/transaction", methods=["POST"])
 def mpesa_callback():
-    """ Handles M-Pesa callback and logs contributions. """
+    """Handles M-Pesa callback and logs contributions (and loan repayments)."""
     data = request.get_json()
 
     logger.info(f"Full M-Pesa Callback Data: {data}")
@@ -94,8 +94,33 @@ def mpesa_callback():
 
     logger.info(f"Logging contribution for user {user.id}, Amount: {amount}, Receipt: {receipt_number}")
     
-    # Log contribution using the helper function
+    # Log contribution
     response, status_code = log_contribution(user.id, amount, receipt_number)
+
+    # If contribution logged successfully, apply to outstanding loans
+    if status_code == 201:
+
+        remaining = float(amount)
+        loans = Loan.query.filter(
+            Loan.user_id == user.id,
+            Loan.status == LoanStatus.DISBURSED
+        ).order_by(Loan.date).all()  # use `Loan.date` for consistency with your models
+
+        for loan in loans:
+            if remaining <= 0:
+                break
+            apply_amount = min(remaining, loan.outstanding)
+            loan.outstanding -= apply_amount
+            remaining -= apply_amount
+            if loan.outstanding == 0:
+                loan.status = LoanStatus.REPAID
+            db.session.add(loan)
+
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating loan repayments: {e}")
 
     return jsonify(response), status_code
 
