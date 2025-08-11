@@ -5,7 +5,7 @@ import ProminentAppBar from "../components/header";
 import AccountSummary from "../components/AccountSummary";
 import ContributionStreakTable from "../components/ContributionStreakTable";
 import PendingWithdrawals from "../components/PendingWithdrawals";
-import ContributionPieChart from "../components/ContributionsPieChart";
+import GroupAUMChart from "../components/GroupAUMChart";
 import QuickActions from "../components/Quickactions"
 
 function Dashboard() {
@@ -58,7 +58,7 @@ function Dashboard() {
         {/* Pending withdrawals*/}
         <PendingWithdrawals />
         {/*Pie chart*/}
-        <ContributionPieChart />
+        <GroupAUMChart />
         
         {/* 
           - Notifications

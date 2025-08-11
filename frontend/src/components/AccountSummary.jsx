@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { CircularProgress } from "@mui/material";
+import { Group, AccountBalanceWallet, People } from "@mui/icons-material";
 
 function AccountSummary({ userMonthlyTotal, groupName }) {
   const [groupTotal, setGroupTotal] = useState(null);
@@ -15,7 +17,7 @@ function AccountSummary({ userMonthlyTotal, groupName }) {
         setGroupTotal(groupRes.data.total_contributions || 0);
       } catch (err) {
         console.error("Failed to fetch group total:", err);
-        console.warn("Group contribution data unavailable. User might not ber in a group.");
+        console.warn("Group contribution data unavailable. User might not be in a group.");
         setGroupTotal(null);
       } finally {
         setLoading(false);
@@ -26,16 +28,54 @@ function AccountSummary({ userMonthlyTotal, groupName }) {
   }, [token]);
 
   if (loading) {
-    return <div className="text-center">Loading summary...</div>;
+    return (
+      <div className="flex justify-center items-center p-6">
+        <CircularProgress size={28} />
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white shadow rounded p-4 mb-6 max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-2 text-black-600">Account Summary</h2>
-      <div className="text-sm text-gray-700 space-y-1">
-        <p><strong>Your Monthly Total:</strong> KES {userMonthlyTotal?.toFixed(2)}</p>
-        <p><strong>Group:</strong> {groupName || "No group joined"}</p>
-        <p><strong>Group Contributions:</strong> {groupTotal !== null ? `KES ${groupTotal.toFixed(2)}` : "Not available"}</p>
+    <div className="bg-white max-w-md mx-auto shadow-lg rounded-lg overflow-hidden">
+      {/* Header */}
+      <div className="bg-gray-100 px-6 py-4 border-b">
+        <h2 className="text-lg font-semibold text-center">Account Summary</h2>
+      </div>
+
+      {/* Content */}
+      <div className="px-6 py-4 space-y-4">
+        {/* Monthly Total */}
+        <div className="flex items-center gap-3">
+          <AccountBalanceWallet className="text-indigo-500" />
+          <div>
+            <p className="text-sm text-gray-500">Your Monthly Total</p>
+            <p className="text-lg font-semibold text-gray-800">
+              KES {userMonthlyTotal?.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        {/* Group Name */}
+        <div className="flex items-center gap-3">
+          <Group className="text-green-500" />
+          <div>
+            <p className="text-sm text-gray-500">Group</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {groupName || "No group joined"}
+            </p>
+          </div>
+        </div>
+
+        {/* Group Contributions */}
+        <div className="flex items-center gap-3">
+          <People className="text-orange-500" />
+          <div>
+            <p className="text-sm text-gray-500">Group Contributions</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {groupTotal !== null ? `KES ${groupTotal.toFixed(2)}` : "Not available"}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
