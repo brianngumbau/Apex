@@ -43,7 +43,7 @@ def generate_password():
     password = base64.b64encode(password_str.encode()).decode()
     return password, timestamp
 
-def initiate_stk_push(user_id, amount):
+def initiate_stk_push(user_id, amount, account_reference=None, transaction_desc=None):
     """Initiates an STK Push for a user based on their group's M-Pesa Paybill number."""
     access_token = get_mpesa_access_token()
     if not access_token:

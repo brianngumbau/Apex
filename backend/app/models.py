@@ -143,5 +143,6 @@ class Loan(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # admin who approved
     disbursed_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=True)
 
-    user = db.relationship('User', backref=db.backref('loans', lazy=True))
+    borrower = db.relationship('User', foreign_keys=[user_id], backref=db.backref('loans_borrowed', lazy=True))
+    approver = db.relationship('User', foreign_keys=[approved_by], backref=db.backref('loans_approved', lazy=True))
     group = db.relationship('Group', backref=db.backref('loans', lazy=True))
