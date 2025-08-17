@@ -1,38 +1,42 @@
 import React from 'react';
-import {NavLink} from "react-router-dom";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHouse  } from '@fortawesome/free-solid-svg-icons'
-import { faUser } from '@fortawesome/free-solid-svg-icons'
-import { faUsers } from '@fortawesome/free-solid-svg-icons'
+import { NavLink } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHouse, faUser, faUsers } from '@fortawesome/free-solid-svg-icons';
 
 const NavLinks = () => {
+  const linkClasses = ({ isActive }) =>
+    `flex flex-col items-center text-sm transition-colors duration-300 
+    ${isActive ? "text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-300"} 
+    hover:text-blue-400 dark:hover:text-blue-300`;
+
   return (
     <>
-    <NavLink to="/profile"  className={({ isActive }) => isActive ? "text-gray-500" : ""}> <FontAwesomeIcon icon={faUser} /> </NavLink>
-    <NavLink to="/dashboard"  className={({ isActive }) => isActive ? "text-gray-500" : ""}><FontAwesomeIcon icon={faHouse} /> </NavLink>
-    <NavLink to="/group"  className={({ isActive }) => isActive ? "text-gray-500" : ""}><FontAwesomeIcon icon={faUsers} /> </NavLink>
+      <NavLink to="/profile" className={linkClasses} aria-label="Profile">
+        <FontAwesomeIcon icon={faUser} size="lg" />
+        <span className="mt-1">Profile</span>
+      </NavLink>
+
+      <NavLink to="/dashboard" className={linkClasses} aria-label="Dashboard">
+        <FontAwesomeIcon icon={faHouse} size="lg" />
+        <span className="mt-1">Home</span>
+      </NavLink>
+
+      <NavLink to="/group" className={linkClasses} aria-label="Groups">
+        <FontAwesomeIcon icon={faUsers} size="lg" />
+        <span className="mt-1">Groups</span>
+      </NavLink>
     </>
-  )
-    
-    
-  
+  );
 };
 
 const Nav = () => {
-return (
- 
-  <div className='fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 dark:bg-gray-700 dark:border-gray-600'>
-      <nav className="md:max-lg bg-white border-t border-gray-200 shadow-lg justify-between p-3">
-          <div className="flex justify-between">
-          <NavLinks />
-          </div>
+  return (
+    <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+      <nav className="flex justify-around items-center h-full">
+        <NavLinks />
       </nav>
-  </div>
-
-
-
-)
- 
-}
+    </div>
+  );
+};
 
 export default Nav;

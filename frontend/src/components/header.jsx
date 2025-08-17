@@ -1,24 +1,53 @@
-import * as React from 'react';
-import { styled } from '@mui/material/styles';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import MoreIcon from '@mui/icons-material/MoreVert';
-import { useNavigate } from 'react-router-dom';
+import * as React from "react";
+import { styled, useTheme } from "@mui/material/styles";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import Toolbar from "@mui/material/Toolbar";
+import IconButton from "@mui/material/IconButton";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import MoreIcon from "@mui/icons-material/MoreVert";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import GroupAddIcon from "@mui/icons-material/GroupAdd";
+import LogoutIcon from "@mui/icons-material/Logout";
+import LoginIcon from "@mui/icons-material/Login";
+import CalculateIcon from "@mui/icons-material/Calculate";
+import { useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
-  alignItems: 'flex-start',
+  alignItems: "center",
   paddingTop: theme.spacing(1),
-  paddingBottom: theme.spacing(2),
-  '@media all': {
+  paddingBottom: theme.spacing(1),
+  "@media all": {
     minHeight: 64,
   },
 }));
 
+const StyledMenu = styled(Menu)(({ theme }) => ({
+  "& .MuiPaper-root": {
+    borderRadius: 12,
+    marginTop: theme.spacing(1),
+    minWidth: 180,
+    boxShadow:
+      theme.palette.mode === "dark"
+        ? "0 4px 20px rgba(0,0,0,0.7)"
+        : "0 4px 20px rgba(0,0,0,0.15)",
+    "& .MuiMenuItem-root": {
+      padding: theme.spacing(1.2, 2),
+      borderRadius: 8,
+      transition: "background 0.2s ease",
+      "&:hover": {
+        backgroundColor:
+          theme.palette.mode === "dark"
+            ? theme.palette.grey[800]
+            : theme.palette.grey[100],
+      },
+    },
+  },
+}));
+
 export default function ProminentAppBar() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
@@ -49,14 +78,27 @@ export default function ProminentAppBar() {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static" color="default" enableColorOnDark>
+      <AppBar
+        position="static"
+        sx={{
+          backgroundColor:
+            theme.palette.mode === "dark"
+              ? theme.palette.background.paper
+              : "#ffffff",
+          color: theme.palette.text.primary,
+          boxShadow:
+            theme.palette.mode === "dark"
+              ? "0 2px 10px rgba(0,0,0,0.7)"
+              : "0 2px 10px rgba(0,0,0,0.1)",
+        }}
+      >
         <StyledToolbar>
           {/* ✅ Company Logo */}
-          <Box sx={{ mr: 2, mt: 0.5 }}>
+          <Box sx={{ mr: 2, display: "flex", alignItems: "center" }}>
             <img
               src="maziwa.jpg"
               alt="Company Logo"
-              style={{ height: 40, cursor: 'pointer' }}
+              style={{ height: 40, cursor: "pointer", borderRadius: "8px" }}
               onClick={() => navigate("/")}
             />
           </Box>
@@ -66,7 +108,6 @@ export default function ProminentAppBar() {
           {/* ✅ Menu Button */}
           <IconButton
             size="large"
-            aria-label="display more actions"
             edge="end"
             color="inherit"
             onClick={handleMenuOpen}
@@ -74,30 +115,41 @@ export default function ProminentAppBar() {
             <MoreIcon />
           </IconButton>
 
-          {/* ✅ Dropdown Menu Items */}
-          <Menu
+          {/* ✅ Dropdown Menu */}
+          <StyledMenu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             <MenuItem onClick={() => handleNavigation("/notifications")}>
+              <NotificationsIcon fontSize="small" sx={{ mr: 1 }} />
               Notifications
             </MenuItem>
-            
+
             <MenuItem onClick={() => handleNavigation("/FinanceUtilities")}>
-             Finance Utilities
+              <CalculateIcon fontSize="small" sx={{ mr: 1 }} />
+              Finance Utilities
             </MenuItem>
 
             <MenuItem onClick={() => handleNavigation("/create-group")}>
+              <GroupAddIcon fontSize="small" sx={{ mr: 1 }} />
               Create Group
             </MenuItem>
 
             <MenuItem onClick={handleLoginLogout}>
-              {isLoggedIn ? "Logout" : "Login"}
+              {isLoggedIn ? (
+                <>
+                  <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Logout
+                </>
+              ) : (
+                <>
+                  <LoginIcon fontSize="small" sx={{ mr: 1 }} /> Login
+                </>
+              )}
             </MenuItem>
-          </Menu>
+          </StyledMenu>
         </StyledToolbar>
       </AppBar>
     </Box>

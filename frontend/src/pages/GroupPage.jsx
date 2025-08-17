@@ -1,149 +1,119 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import Avatar from '@mui/material/Avatar';
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 
-const BACKEND_URL = "http://127.0.0.1:5000";
-
-export default function GroupPage() {
-  const [groups, setGroups] = useState([]);
-  const [members, setMembers] = useState([]);
-  const [message, setMessage] = useState("");
-
-  const token = localStorage.getItem("token");
-
-  const authHeaders = {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/groups`, { headers: authHeaders });
-      const data = await res.json();
-      if (res.ok) setGroups(data);
-      else setMessage(data.error || "Failed to fetch groups.");
-    } catch (error) {
-      setMessage("Error fetching groups: " + error.message);
-    }
-  };
-
-  const fetchMembers = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/group/members`, { headers: authHeaders });
-      const data = await res.json();
-      if (res.ok) setMembers(data);
-      else setMembers([]); // user is not in a group
-    } catch (error) {
-      setMessage("Error fetching members: " + error.message);
-    }
-  };
-
-  const requestJoin = async (id) => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/group/join`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({ group_id: id }),
-      });
-      const data = await res.json();
-      setMessage(data.message || data.error);
-    } catch (error) {
-      setMessage("Error requesting to join group: " + error.message);
-    }
-  };
-
-  const leaveGroup = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/group/leave`, {
-        method: "POST",
-        headers: authHeaders,
-      });
-      const data = await res.json();
-      setMessage(data.message || data.error);
-      if (res.ok) {
-        setMembers([]);
-        fetchGroups();
-      }
-    } catch (error) {
-      setMessage("Error leaving group: " + error.message);
-    }
-  };
+const ContributionStreakTable = () => {
+  const [contributors, setContributors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!token) {
-      setMessage("You must be logged in to view groups.");
-      return;
-    }
-    fetchGroups();
-    fetchMembers();
-  }, [token]);
+    const fetchStreaks = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-  if (!token) {
-    return (
-      <div className="max-w-2xl mx-auto mt-10 text-center text-red-600">
-        You must be logged in to view this page.
-      </div>
-    );
-  }
+        if (!token) {
+          setError("Missing token");
+          setLoading(false);
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/contributions/streaks', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const sorted = response.data.sort((a, b) => b.streak - a.streak);
+        setContributors(sorted);
+      } catch (err) {
+        setError("Failed to fetch streaks.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStreaks();
+  }, []);
+
+  const getMedalEmoji = (index) => {
+    switch (index) {
+      case 0: return '🥇';
+      case 1: return '🥈';
+      case 2: return '🥉';
+      default: return null;
+    }
+  };
+
+  if (loading) return <p className="p-4">Loading...</p>;
+  if (error) return <p className="p-4 text-red-500">{error}</p>;
+
+  const maxStreak = contributors.length ? contributors[0].streak : 0;
 
   return (
     <>
-      <ProminentAppBar />
-      <div className="max-w-4xl mx-auto mt-10 space-y-8 px-4">
-        <h1 className="text-3xl font-bold text-center text-gray-800">Group Dashboard</h1>
 
-        {message && (
-          <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded shadow">
-            {message}
-          </div>
-        )}
+  <ProminentAppBar />
 
-        {/* IF user is in a group - show group members */}
-        {members.length > 0 ? (
-          <div className="bg-white p-6 rounded shadow">
-            <h2 className="text-xl font-semibold mb-4">Your Group Members</h2>
-            <ul className="divide-y">
-              {members.map((member) => (
-                <li key={member.id} className="py-2 flex justify-between">
-                  <span>{member.name}</span>
-                  <span className="text-sm text-gray-500">
-                    {member.is_admin ? "Admin" : "Member"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={leaveGroup}
-              className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Leave Group
-            </button>
-          </div>
-        ) : (
-          // IF user is NOT in a group - show available groups
-          <div className="bg-white p-6 rounded shadow">
-            <h2 className="text-xl font-semibold mb-4">Available Groups</h2>
-            <ul className="space-y-2">
-              {groups.map((group) => (
-                <li
-                  key={group.id}
-                  className="flex justify-between items-center p-3 border rounded"
-                >
-                  <span>{group.name}</span>
-                  <button
-                    onClick={() => requestJoin(group.id)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                  >
-                    Request to Join
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+  
+  <div className="mt-20 max-w-md mx-auto shadow-lg rounded-lg overflow-hidden">
+  
+    <div className="bg-gray-100 px-6 py-4 border-b">
+      <h2 className="text-lg font-semibold text-center">Leaderboard</h2>
+    </div>
 
-        <Nav />
-      </div>
-    </>
+    {/* List */}
+    <div className="divide-y">
+      {contributors.map((contributor, index) => {
+        const percentage = maxStreak ? (contributor.streak / maxStreak) * 100 : 0;
+        return (
+          <div
+            key={index}
+            className="relative px-6 py-4 overflow-hidden"
+          >
+            {/* Animated Background Bar with less opacity */}
+            <div
+              className="absolute top-0 left-0 h-full bg-blue-500 opacity-10 transition-all duration-1000 ease-out"
+              style={{ width: `${percentage}%` }}
+            ></div>
+
+            {/* Foreground Content */}
+            <div className="flex items-center gap-4 relative z-10">
+              {/* Rank number */}
+              <div className="text-lg font-bold w-6 text-gray-700">{index + 1}</div>
+
+              {/* Avatar */}
+              <Avatar
+                src={contributor.avatar || "https://via.placeholder.com/150"}
+                alt={contributor.name}
+                sx={{ width: 48, height: 48 }}
+              />
+
+              {/* Name + Medal + Streak */}
+              <div>
+                <p className="font-medium text-gray-800 flex items-center gap-1">
+                  {contributor.name}
+                  {getMedalEmoji(index) && (
+                    <span className="text-xl">{getMedalEmoji(index)}</span>
+                  )}
+                </p>
+                <p className="text-sm text-gray-500">
+                  Streak: {contributor.streak} days
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+
+  <Nav />
+</>
+
   );
-}
+};
+
+export default ContributionStreakTable;

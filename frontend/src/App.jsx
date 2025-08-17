@@ -1,3 +1,4 @@
+// App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LandingPage from "./pages/Landingpage";
@@ -16,30 +17,103 @@ import FinanceUtilities from "./pages/FinanceUtilites";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
+// Import Theme Context Provider
+import { ThemeProvider } from "./context/ThemeContext";
+
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Protected Routes */}
-        
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/group" element={<ProtectedRoute><GroupPage /></ProtectedRoute>} />
-        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-        <Route path="/contribute" element={<ProtectedRoute><ContributePage /></ProtectedRoute>} />
-        <Route path="/borrow" element={<ProtectedRoute><BorrowPage /></ProtectedRoute>} />
-        <Route path="/repay" element={<ProtectedRoute><RepayPage /></ProtectedRoute>} />
-        <Route path="/create-group" element={<ProtectedRoute><CreateGroupPage /></ProtectedRoute>} />
-        <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
-        <Route path="/FinanceUtilities" element={<ProtectedRoute><FinanceUtilities /></ProtectedRoute>} />
-        
-      </Routes>
-    </Router>
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/group"
+            element={
+              <ProtectedRoute>
+                <GroupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contribute"
+            element={
+              <ProtectedRoute>
+                <ContributePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/borrow"
+            element={
+              <ProtectedRoute>
+                <BorrowPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/repay"
+            element={
+              <ProtectedRoute>
+                <RepayPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-group"
+            element={
+              <ProtectedRoute>
+                <CreateGroupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transactions"
+            element={
+              <ProtectedRoute>
+                <TransactionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/FinanceUtilities"
+            element={
+              <ProtectedRoute>
+                <FinanceUtilities />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

@@ -3,9 +3,8 @@ import axios from "axios";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 import AccountSummary from "../components/AccountSummary";
-import ContributionStreakTable from "../components/ContributionStreakTable";
 import PendingWithdrawals from "../components/PendingWithdrawals";
-import GroupAUMChart from "../components/GroupAUMChart";
+import BudgetAllocation from "../components/BudgetAllocation";
 import QuickActions from "../components/Quickactions"
 
 function Dashboard() {
@@ -51,18 +50,13 @@ function Dashboard() {
         groupName={user?.group_name}
          />
 
+         <BudgetAllocation />
 
-        {/* ContributionStreakTable */}
-        <ContributionStreakTable />
+        
         
         {/* Pending withdrawals*/}
         <PendingWithdrawals />
-        {/*Pie chart*/}
-        <GroupAUMChart />
         
-        {/* 
-          - Notifications
-        */}
 
       </main>
       <Nav />
