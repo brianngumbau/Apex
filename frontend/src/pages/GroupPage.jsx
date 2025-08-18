@@ -3,6 +3,7 @@ import axios from 'axios';
 import Avatar from '@mui/material/Avatar';
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
+import GroupTableSkeleton from '../components/GroupTableSkeleton';
 
 const ContributionStreakTable = () => {
   const [contributors, setContributors] = useState([]);
@@ -47,7 +48,12 @@ const ContributionStreakTable = () => {
     }
   };
 
-  if (loading) return <p className="p-4">Loading...</p>;
+  if (loading) {
+  return <GroupTableSkeleton />;
+    }
+
+
+
   if (error) return <p className="p-4 text-red-500">{error}</p>;
 
   const maxStreak = contributors.length ? contributors[0].streak : 0;

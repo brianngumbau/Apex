@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, Typography, LinearProgress, Box } from "@mui/material";
 
-const colors = [
-  "rgba(99, 102, 241, 0.6)", // Indigo
-  "rgba(34, 197, 94, 0.6)",  // Green
-  "rgba(249, 115, 22, 0.6)", // Orange
-  "rgba(234, 179, 8, 0.6)",  // Yellow
-  "rgba(59, 130, 246, 0.6)", // Blue
+const blueShades = [
+  "rgba(191, 219, 254, 0.9)", // Light Blue
+  "rgba(147, 197, 253, 0.9)", // Medium Blue
+  "rgba(96, 165, 250, 0.9)",  // Deeper Blue
+  "rgba(59, 130, 246, 0.9)",  // Blue
+  "rgba(37, 99, 235, 0.9)",   // Darker Blue
 ];
 
 const BudgetAllocation = () => {
@@ -34,20 +34,20 @@ const BudgetAllocation = () => {
             updated[index] = item.value;
             return updated;
           });
-        }, index * 150); // small stagger delay for nicer animation
+        }, index * 150);
       });
     }, 300);
   }, []);
 
   return (
-    <Card className="max-w-md mx-auto shadow-lg rounded-lg">
+    <Card className="max-w-md mx-auto shadow-md rounded-xl bg-white">
       <CardContent>
         {/* Title */}
         <Typography
           variant="h6"
-          className="text-center font-semibold text-gray-800 mb-4"
+          className="text-center font-semibold text-gray-700 mb-4"
         >
-          Test Group Budget Allocation
+          Company Budget Allocation
         </Typography>
 
         {/* Bars */}
@@ -56,8 +56,7 @@ const BudgetAllocation = () => {
             <Box key={index}>
               <Typography
                 variant="body2"
-                className="font-medium mb-1"
-                style={{ color: colors[index % colors.length].replace("0.6", "1") }} // Full opacity for text
+                className="font-medium mb-1 text-gray-600"
               >
                 {item.category}
               </Typography>
@@ -66,10 +65,10 @@ const BudgetAllocation = () => {
                 value={progress[index] || 0}
                 sx={{
                   height: 10,
-                  borderRadius: 5,
-                  backgroundColor: "#f3f4f6", // lighter background
+                  borderRadius: 6,
+                  backgroundColor: "#e5e7eb", // Tailwind gray-200
                   "& .MuiLinearProgress-bar": {
-                    backgroundColor: colors[index % colors.length],
+                    backgroundColor: blueShades[index % blueShades.length],
                     transition: "width 1s ease-in-out",
                   },
                 }}

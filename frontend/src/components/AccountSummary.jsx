@@ -27,13 +27,13 @@ function AccountSummary({ userMonthlyTotal, groupName }) {
     fetchGroupTotal();
   }, [token]);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-6">
-        <CircularProgress size={28} />
-      </div>
-    );
-  }
+ {loading && (
+  <div className="flex justify-center items-center py-4">
+    <div className="w-6 h-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+  </div>
+)}
+
+
 
   return (
     <div className="bg-white max-w-md mx-auto shadow-lg rounded-lg overflow-hidden">

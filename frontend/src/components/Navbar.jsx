@@ -6,8 +6,8 @@ import { faHouse, faUser, faUsers } from '@fortawesome/free-solid-svg-icons';
 const NavLinks = () => {
   const linkClasses = ({ isActive }) =>
     `flex flex-col items-center text-sm transition-colors duration-300 
-    ${isActive ? "text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-300"} 
-    hover:text-blue-400 dark:hover:text-blue-300`;
+    ${isActive ? "text-black-500" : "text-gray-500"} 
+    hover:text-black-400`;
 
   return (
     <>
@@ -31,7 +31,7 @@ const NavLinks = () => {
 
 const Nav = () => {
   return (
-    <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+    <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 shadow-lg">
       <nav className="flex justify-around items-center h-full">
         <NavLinks />
       </nav>

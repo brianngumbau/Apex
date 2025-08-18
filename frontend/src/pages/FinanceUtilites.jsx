@@ -7,9 +7,11 @@ import { CreditCard, Wallet, TrendingUp } from "lucide-react";
 export default function FinanceUtilities() {
   const [contributionAmount, setContributionAmount] = useState("");
   const [borrowAmount, setBorrowAmount] = useState("");
+  const [repayAmount, setRepayAmount] = useState("");
   const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
+
 
   // Handle Contributions
   const handleContribute = async () => {
@@ -40,7 +42,7 @@ export default function FinanceUtilities() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/loans/borrow",
+        "http://localhost:5000/loans/request", 
         { amount: parseFloat(borrowAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -48,7 +50,7 @@ export default function FinanceUtilities() {
       setBorrowAmount("");
     } catch (error) {
       console.error(error);
-      alert(error.response?.data?.error || "Failed to borrow. Please try again.");
+      alert(error.response?.data?.error || "Failed to request loan.");
     } finally {
       setLoading(false);
     }
@@ -56,14 +58,16 @@ export default function FinanceUtilities() {
 
   // Handle Repay Loan
   const handleRepay = async () => {
+    if (!repayAmount) return alert("Please enter an amount.");
     setLoading(true);
     try {
       const response = await axios.post(
         "http://localhost:5000/loans/repay",
-        {},
+        { amount: parseFloat(repayAmount) }, // ✅ Now sending amount
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert(response.data.message || "Repayment successful");
+      alert(response.data.message || "Repayment initiated");
+      setRepayAmount("");
     } catch (error) {
       console.error(error);
       alert(error.response?.data?.error || "Failed to repay loan.");
@@ -121,6 +125,13 @@ export default function FinanceUtilities() {
               Manage and repay your existing loans efficiently with our
               user-friendly tools.
             </p>
+            <input
+              type="number"
+              placeholder="Enter repayment amount"
+              value={repayAmount}
+              onChange={(e) => setRepayAmount(e.target.value)}
+              className="w-full px-4 py-3 mb-5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+            />
             <button
               onClick={handleRepay}
               disabled={loading}
