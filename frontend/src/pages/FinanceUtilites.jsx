@@ -11,6 +11,8 @@ export default function FinanceUtilities() {
   const [loading, setLoading] = useState(false);
 
   const token = localStorage.getItem("token");
+  console.log("Token in FinanceUtilities:", token);
+
 
 
   // Handle Contributions

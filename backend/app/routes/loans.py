@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Loan, Transaction, TransactionType, Notification
+from models import db, User, Loan, Transaction, TransactionType, Notification, LoanStatus
 from utils.mpesa import initiate_b2c_payment, initiate_stk_push
 import datetime
 import logging
@@ -13,22 +13,79 @@ logger.setLevel(logging.INFO)
 @jwt_required()
 def request_loan():
     user_id = get_jwt_identity()
+    print("Decoded user_id:", user_id)
     data = request.get_json() or {}
-    amount = data.get('amount')
+    amount = float(data.get('amount') or 0)
 
-    if not amount or float(amount) <= 0:
+    if amount <= 0:
         return jsonify({"error": "Invalid amount"}), 400
 
     user = User.query.get(user_id)
     if not user or not user.group_id:
         return jsonify({"error": "User or group not found"}), 404
 
+    group_id = user.group_id
+
+    
+    #  Compute group financials
+    
+    total_contributions = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(Transaction.group_id == group_id,
+                Transaction.type == TransactionType.CREDIT).scalar() or 0.0
+
+    total_withdrawals = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(Transaction.group_id == group_id,
+                Transaction.type == TransactionType.DEBIT,
+                Transaction.reason == "Withdrawal").scalar() or 0.0
+
+    outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
+        .filter(Loan.group_id == group_id,
+                Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])).scalar() or 0.0
+
+    cash_at_hand = total_contributions - total_withdrawals - outstanding_loans
+    available_company_limit = 0.4 * cash_at_hand
+
+    if cash_at_hand <= 0 or available_company_limit <= 0:
+        return jsonify({"error": "Group has insufficient funds to lend"}), 400
+
+    
+    # Compute user’s entitlement
+
+    user_contributions = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(Transaction.group_id == group_id,
+                Transaction.user_id == user.id,
+                Transaction.type == TransactionType.CREDIT).scalar() or 0.0
+
+    if total_contributions == 0:
+        return jsonify({"error": "No contributions in the group yet"}), 400
+
+    user_entitlement = (user_contributions / total_contributions) * available_company_limit
+
+
+    #  Check outstanding loans for this user
+    
+    user_outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
+        .filter(Loan.user_id == user.id,
+                Loan.group_id == group_id,
+                Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])).scalar() or 0.0
+
+    if user_outstanding_loans + amount > user_entitlement:
+        return jsonify({
+            "error": "Loan request exceeds your limit",
+            "your_entitlement": user_entitlement,
+            "your_outstanding": user_outstanding_loans,
+            "requested": amount
+        }), 400
+
+    
+    #  Create the loan request
+
     loan = Loan(
-        user_id = user_id,
-        group_id = user.group_id,
-        amount = float(amount),
-        outstanding = float(amount),
-        status = "pending"
+        user_id=user.id,
+        group_id=group_id,
+        amount=amount,
+        outstanding=amount,
+        status=LoanStatus.PENDING
     )
     db.session.add(loan)
     db.session.commit()
@@ -38,7 +95,7 @@ def request_loan():
     if admin:
         notif = Notification(
             user_id=admin.id,
-            group_id=user.group_id,
+            group_id=group_id,
             message=f"{user.name} requested a loan of Ksh {amount}",
             type="Loan request",
             date=datetime.datetime.now(datetime.timezone.utc)
@@ -46,7 +103,12 @@ def request_loan():
         db.session.add(notif)
         db.session.commit()
 
-    return jsonify({"message": "Loan request submitted", "loan_id": loan.id}), 201
+    return jsonify({
+        "message": "Loan request submitted",
+        "loan_id": loan.id,
+        "your_entitlement": user_entitlement,
+        "requested": amount
+    }), 201
 
 
 @loan_bp.route('/loans/approve/<int:loan_id>', methods=['POST'])
@@ -58,10 +120,10 @@ def approve_loan(loan_id):
         return jsonify({"error": "Unauthorized"}), 403
 
     loan = Loan.query.get(loan_id)
-    if not loan or loan.status != "pending":
+    if not loan or loan.status != LoanStatus.PENDING:
         return jsonify({"error": "Loan not found or already processed"}), 404
 
-    loan.status = "approved"
+    loan.status = LoanStatus.APPROVED
     loan.approved_by = admin.id
     db.session.commit()
 
@@ -77,10 +139,10 @@ def disburse_loan(loan_id):
         return jsonify({"error": "Unauthorized"}), 403
 
     loan = Loan.query.get(loan_id)
-    if not loan or loan.status != "approved":
+    if not loan or loan.status != LoanStatus.APPROVED:
         return jsonify({"error": "Loan not found or not approved"}), 404
 
-    borrower = User.query.get(loan.user_id)
+    borrower = loan.borrower
     if not borrower:
         return jsonify({"error": "Borrower not found"}), 404
 
@@ -109,7 +171,7 @@ def disburse_loan(loan_id):
     db.session.add(tx)
     db.session.commit()
 
-    loan.status = "disbursed"
+    loan.status = LoanStatus.DISBURSED
     loan.disbursed_transaction_id = tx.id
     db.session.commit()
 

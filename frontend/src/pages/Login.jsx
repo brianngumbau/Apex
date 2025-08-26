@@ -23,6 +23,7 @@ function Login() {
             // Store token in localStorage
             localStorage.setItem("token", response.data.access_token);
             localStorage.setItem("user_id", response.data.user_id);
+            console.log("Saved token:", localStorage.getItem("token"));
             alert("Login successful!");
 
             // redirect to dashboard/home

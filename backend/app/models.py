@@ -46,6 +46,7 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    daily_contribution_amount = db.Column(db.Float, default=0.0, nullable=False)
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
     members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan", foreign_keys=[User.group_id])
