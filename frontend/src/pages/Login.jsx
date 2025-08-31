@@ -20,15 +20,22 @@ function Login() {
                 password: data.password,
             });
             console.log("Login success:", response.data);
+
+            const {access_token, user} = response.data;
             // Store token in localStorage
-            localStorage.setItem("token", response.data.access_token);
-            localStorage.setItem("user_id", response.data.user_id);
-            console.log("Saved token:", localStorage.getItem("token"));
+            localStorage.setItem("token", access_token);
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("is_admin", user.is_admin ? "true" : "false");
+            
             alert("Login successful!");
 
             // redirect to dashboard/home
-            navigate("/dashboard");
+            if (user.is_admin) {
+                navigate("/admin-dashboard");
+            } else {
+                navigate("/dashboard");
 
+            }
 
         } catch (error) {
             if (error.message) {

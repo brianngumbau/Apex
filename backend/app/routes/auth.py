@@ -40,27 +40,40 @@ def register():
 
     return jsonify({"message": "User registered successfully. Please log in and join or create a group."}), 201
 
+
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
         data = request.get_json()
-        print("Request data:", data)
 
         if not all(field in data for field in ["email", "password"]):
             return jsonify({"error": "Missing required fields"}), 400
         
         user = User.query.filter_by(email=data["email"]).first()
-        print("User found:", user)
         if not user or not check_password_hash(user.password, data["password"]):
             return jsonify({"error": "Invalid credentials"}), 401
         
-
         access_token = create_access_token(identity=user.id, additional_claims={"sub": str(user.id)})
-        print("Access token created:", access_token)
+
+        # fetch group name if exists
+        group_name = None
+        if user.group_id:
+            group = Group.query.get(user.group_id)
+            if group:
+                group_name = group.name
 
         response = {
             "access_token": access_token,
-            "user_id": user.id
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "phone": user.phone,
+                "is_admin": user.is_admin,
+                "group_id": user.group_id,
+                "group_name": group_name,
+                "monthly_total": user.monthly_total
+            }
         }
 
         if not user.group_id:

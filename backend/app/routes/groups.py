@@ -215,47 +215,6 @@ def get_groups():
     ])
 
 
-@groups_bp.route("/groups/<int:group_id>/set_daily_amount", methods=["POST"])
-@jwt_required()
-def set_daily_amount(group_id):
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    if not user or not user.is_admin:
-        return jsonify({"error": "Unauthorized"}), 403
-    
-    group = Group.query.get(group_id)
-    if not group:
-        return jsonify({"error": "Group not found"}), 404
-    
-    if group.admin_id != user.id:
-        return jsonify({"error": "Only the group admin can set this"}), 403
-    
-    data = request.get_json() or {}
-    amount = data.get("amount")
-
-    if not amount or float(amount) <= 0:
-        return jsonify({"error": "Invalid amount"}), 400
-    
-    group.daily_contribution_amount = float(amount)
-    db.session.commit()
-
-    members = group.members
-    for member in members:
-        if member.id == user.id:
-            continue
-        notif = Notification(
-            user_id=member.id,
-            group_id=group.id,
-            message=f"The daily contribution has been set to Ksh {amount} by {user.name}",
-            type="Daily Contribution update",
-            dete=datetime.datetime.now(datetime.timezone.utc)
-        )
-        db.session.add(notif)
-
-    db.session.commit()
-
-    return jsonify({"message": f"Daily contribution set to {amount} for {group.name}"}), 200
-
 
 @groups_bp.route("/groups/<int:group_id>/daily_amount", methods=["GET"])
 @jwt_required()

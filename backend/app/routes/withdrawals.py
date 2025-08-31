@@ -249,3 +249,34 @@ def reject_withdrawal(transaction_id):
         "total_rejections": withdrawal.rejections,
         "status": withdrawal.status.value
     }), 201
+
+
+@withdrawal_bp.route("/withdrawals/group", methods=["GET"])
+@jwt_required()
+def get_group_withdrawals():
+    """
+    Allows the group admin to view all withdrawal requests in their group.
+    """
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    group_id = user.group_id
+    withdrawals = WithdrawalRequest.query.filter_by(group_id=group_id).all()
+
+    if not withdrawals:
+        return jsonify({"message": "No withdrawals found"}), 200
+
+    return jsonify([
+        {
+            "id": w.id,
+            "amount": w.transaction.amount,
+            "date": w.transaction.date.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": w.status.value,
+            "reason": w.transaction.reason,
+            "requested_by": w.transaction.user.name if w.transaction.user else "Unknown"
+        }
+        for w in withdrawals
+    ]), 200

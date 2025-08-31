@@ -209,3 +209,23 @@ def repay_loan():
 
     # We do not mark loan as paid here — loan outstanding is decreased only when M-Pesa callback confirms payment.
     return jsonify({"message": "Repayment STK push initiated", "stk_response": response}), 200
+
+@loan_bp.route('/loans/pending', methods=['GET'])
+@jwt_required()
+def get_pending_loans():
+    user_id = get_jwt_identity()
+    admin = User.query.get(user_id)
+    if not admin or not admin.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    pending_loans = Loan.query.filter_by(status=LoanStatus.PENDING).all()
+    result = [
+        {
+            "id": loan.id,
+            "user": loan.borrower.name if loan.borrower else None,
+            "amount": loan.amount,
+            "requested_on": loan.date.isoformat() if loan.date else None
+        }
+        for loan in pending_loans
+    ]
+    return jsonify(result), 200

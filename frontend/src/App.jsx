@@ -14,6 +14,8 @@ import RepayPage from "./pages/RepayPage";
 import CreateGroupPage from "./pages/CreateGroupPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import FinanceUtilities from "./pages/FinanceUtilites";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminRoute from "./routes/AdminRoute";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 
@@ -111,6 +113,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+            />
         </Routes>
       </Router>
     </ThemeProvider>

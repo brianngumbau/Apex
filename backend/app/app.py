@@ -30,7 +30,7 @@ app.register_blueprint(mpesa_bp)
 app.register_blueprint(groups_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(loan_bp)
-app.register_blueprint(admin_bp)
+app.register_blueprint(admin_bp, url_prefix="/admin")
 
 
 migrate = Migrate(app, db)
