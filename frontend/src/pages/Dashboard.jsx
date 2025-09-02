@@ -3,8 +3,7 @@ import axios from "axios";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 import AccountSummary from "../components/AccountSummary";
-import BudgetAllocation from "../components/BudgetAllocation";
-
+import ContributionStreakTable from "../components/ContributionStreakTable";
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -58,28 +57,28 @@ function Dashboard() {
 
   return (
     <>
-      <ProminentAppBar />
-      <main className="p-6 text-center space-y-6">
-        <h1 className="text-2xl font-bold text-black-600 mb-4">
-          Welcome, {user?.name?.split(" ")[0]}
-        </h1>
+      <div className="flex flex-col min-h-screen">
+            <ProminentAppBar />
 
-        {/*  Account Summary */}
-        <AccountSummary
-        userMonthlyTotal={user?.monthly_total}
-        groupName={user?.group_name}
-         />
+            <main className="p-6 text-center space-y-6 pb-24">
+              <h1 className="text-2xl font-bold text-black-600 mb-4">
+                Welcome, {user?.name?.split(" ")[0]}
+              </h1>
 
-         <BudgetAllocation />
+              {/*  Account Summary */}
+              <AccountSummary
+              userMonthlyTotal={user?.monthly_total}
+              groupName={user?.group_name}
+              />
 
-        
-        
-        
-        
+              <ContributionStreakTable />
 
-      </main>
-      <Nav />
+            </main>
+            
+            <Nav />
+      </div>
     </>
+    
   );
 }
 
