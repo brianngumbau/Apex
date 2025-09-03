@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Avatar, Card, CardContent, Typography, CircularProgress } from "@mui/material";
+import Nav from "../components/Navbar";
+import ProminentAppBar from "../components/header";
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -46,6 +48,10 @@ function Profile() {
   }
 
   return (
+    <>
+
+    <ProminentAppBar />
+
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-6">
       <Card className="w-full max-w-md shadow-lg rounded-2xl">
         <CardContent className="flex flex-col items-center space-y-4">
@@ -68,6 +74,9 @@ function Profile() {
         </CardContent>
       </Card>
     </div>
+    
+    <Nav />
+    </>
   );
 }
 
