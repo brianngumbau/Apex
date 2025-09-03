@@ -41,6 +41,34 @@ const AdminDashboard = () => {
     }
   };
 
+  const approveJoin = async (requestId) => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/group/join/approve/${requestId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchDashboard();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to approve join request");
+    }
+  };
+
+  const rejectJoin = async (requestId) => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/group/join/reject/${requestId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchDashboard();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to reject join request");
+    }
+  };
+
   const updateDailyAmount = async (e) => {
     e.preventDefault();
     try {
@@ -58,7 +86,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user?.group_id) fetchDashboard();
-  }, [user]);
+  }, []);
 
   if (loading) {
     return (
@@ -91,7 +119,9 @@ const AdminDashboard = () => {
       </h1>
       <p className="text-center text-gray-600">
         {dashboard.month} | Daily contribution:{" "}
-        <span className="font-semibold">Ksh {dashboard.daily_contribution_amount}</span>
+        <span className="font-semibold">
+          Ksh {dashboard.daily_contribution_amount}
+        </span>
       </p>
 
       {/* Set Daily Contribution */}
@@ -195,6 +225,40 @@ const AdminDashboard = () => {
           ))
         ) : (
           <p>No pending withdrawals</p>
+        )}
+      </div>
+
+      {/* Pending Join Requests */}
+      <div className="bg-white rounded-2xl shadow-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Pending Join Requests</h2>
+        {dashboard.pending_join_requests?.length ? (
+          dashboard.pending_join_requests.map((req) => (
+            <div
+              key={req.id}
+              className="p-4 border rounded flex justify-between items-center mb-2"
+            >
+              <p>
+                {req.user_name} requested to join on{" "}
+                {new Date(req.date).toLocaleDateString()}
+              </p>
+              <div className="space-x-2">
+                <button
+                  onClick={() => approveJoin(req.id)}
+                  className="bg-green-600 text-white px-4 py-2 rounded shadow"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => rejectJoin(req.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded shadow"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No join requests</p>
         )}
       </div>
     </main>

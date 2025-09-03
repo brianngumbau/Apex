@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus, WithdrawalRequest, WithdrawalStatus, Notification
+from models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus, WithdrawalRequest, WithdrawalStatus, Notification, GroupJoin, GroupJoinRequest
 import datetime, calendar
 
 admin_bp = Blueprint("admin", __name__)
@@ -54,21 +54,32 @@ def set_daily_amount(group_id):
 @admin_bp.route("/groups/<int:group_id>/admin_dashboard", methods=["GET"])
 @jwt_required()
 def get_admin_dashboard(group_id):
-    user_id = get_jwt_identity()
-    group = Group.query.get(group_id)
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    # Always enforce admin’s own group
+    if not user.group_id:
+        return jsonify({"error": "Admin is not assigned to any group"}), 400
+
+    group = Group.query.get(user.group_id)
+
+    print("JWT user_id:", type(user_id))
+    print("Group admin_id:", type(group.admin_id))
+
 
     if not group:
         return jsonify({"error": "Group not found"}), 404
     if group.admin_id != user_id:
         return jsonify({"error": "Unauthorized"}), 403
+    
 
-    #  Daily requirement
+
+    # Daily requirement
     daily_amount = group.daily_contribution_amount or 0
     now = datetime.datetime.now(datetime.timezone.utc)
     first_day = datetime.datetime(now.year, now.month, 1, tzinfo=datetime.timezone.utc)
     required_so_far = daily_amount * now.day
 
-    
     members_data = []
     for member in group.members:
         total_contributed = db.session.query(db.func.sum(Transaction.amount)) \
@@ -88,7 +99,6 @@ def get_admin_dashboard(group_id):
             "status": "met" if total_contributed >= required_so_far else "pending"
         })
 
-
     pending_loans = Loan.query.filter_by(group_id=group.id, status=LoanStatus.PENDING).all()
     loans_data = [{
         "loan_id": loan.id,
@@ -97,7 +107,6 @@ def get_admin_dashboard(group_id):
         "amount": loan.amount,
         "date": loan.date.isoformat()
     } for loan in pending_loans]
-
 
     pending_withdrawals = WithdrawalRequest.query.filter_by(group_id=group.id, status=WithdrawalStatus.PENDING).all()
     withdrawals_data = [{
@@ -110,6 +119,19 @@ def get_admin_dashboard(group_id):
         "date": w.transaction.date.isoformat()
     } for w in pending_withdrawals]
 
+
+    pending_join_requests = GroupJoinRequest.query.filter_by(group_id=group.id, status=GroupJoin.PENDING).all()
+
+    join_requests_data = [
+        {
+            "id": req.id,
+            "user_id": req.user_id,
+            "user_name": req.user.name,
+            "date": req.date.isoformat()
+        } for req in pending_join_requests
+    ]
+
+
     response = {
         "group_id": group.id,
         "group_name": group.name,
@@ -118,7 +140,8 @@ def get_admin_dashboard(group_id):
         "month": now.strftime("%B %Y"),
         "members": members_data,
         "pending_loans": loans_data,
-        "pending_withdrawals": withdrawals_data
+        "pending_withdrawals": withdrawals_data,
+        "pending_join_requests": join_requests_data
     }
 
     return jsonify(response), 200
