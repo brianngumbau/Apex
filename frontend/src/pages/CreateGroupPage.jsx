@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; // Corrected this line
 import { useNavigate } from "react-router-dom";
+import { Button, TextField, CircularProgress, Alert, Box, Paper, Typography } from "@mui/material";
+import { GroupAdd, Lock } from "@mui/icons-material";
 import ProminentAppBar from "../components/header";
 import Nav from "../components/Navbar";
 
@@ -8,6 +10,8 @@ const BACKEND_URL = "http://127.0.0.1:5000";
 export default function CreateGroupPage() {
   const [groupName, setGroupName] = useState("");
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
@@ -17,12 +21,17 @@ export default function CreateGroupPage() {
     "Content-Type": "application/json",
   };
 
-  const handleCreateGroup = async () => {
+  const handleCreateGroup = async (event) => {
+    event.preventDefault(); // Prevent default form submission
     setMessage("");
+    setError("");
+
     if (!groupName.trim()) {
-      setMessage("Group name is required.");
+      setError("Group name is required.");
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${BACKEND_URL}/group/create`, {
@@ -40,51 +49,100 @@ export default function CreateGroupPage() {
       setMessage(data.message || "Group created successfully!");
       setGroupName("");
 
-      // Optionally redirect to group dashboard
+      // Redirect to the group dashboard after a short delay
       setTimeout(() => navigate("/group"), 1500);
     } catch (err) {
-      setMessage(err.message);
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   if (!token) {
     return (
-      <div className="text-center text-red-600 mt-10">
-        You must be logged in to create a group.
+      <div className="flex flex-col min-h-screen bg-gray-100">
+        <ProminentAppBar />
+        <Box className="flex-grow flex items-center justify-center p-4">
+          <Paper elevation={3} className="p-8 text-center max-w-md w-full">
+            <Lock className="text-red-500 mx-auto" style={{ fontSize: 60 }} />
+            <Typography variant="h5" component="h1" className="mt-4 font-semibold">
+              Access Denied
+            </Typography>
+            <Typography color="textSecondary" className="my-4">
+              You must be logged in to create a new group.
+            </Typography>
+          </Paper>
+        </Box>
+        <Nav />
       </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50">
       <ProminentAppBar />
-      <div className="max-w-xl mx-auto mt-10 p-6 bg-white rounded shadow space-y-4">
-        <h1 className="text-2xl font-bold text-gray-800 text-center">
-          Create a New Group
-        </h1>
+      <Box className="flex items-center justify-center p-4 mt-10">
+        <Paper elevation={6} className="w-full max-w-lg p-8 rounded-2xl">
+          <Box className="text-center">
+            <GroupAdd className="mx-auto text-gray-700" style={{ fontSize: 50 }} />
+            <Typography variant="h4" component="h1" className="font-bold mt-2">
+              Create a New Group
+            </Typography>
+            <Typography color="textSecondary" className="mb-6">
+              Start by giving your new group a name.
+            </Typography>
+          </Box>
 
-        {message && (
-          <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded">
-            {message}
-          </div>
-        )}
+          <form onSubmit={handleCreateGroup} className="space-y-6">
+            {message && <Alert severity="success">{message}</Alert>}
+            {error && <Alert severity="error">{error}</Alert>}
 
-        <input
-          type="text"
-          value={groupName}
-          onChange={(e) => setGroupName(e.target.value)}
-          className="w-full p-2 border rounded"
-          placeholder="Enter group name"
-        />
+            <TextField
+              label="Group Name"
+              variant="outlined"
+              fullWidth
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="e.g., 'Project Innovate Team'"
+              disabled={isLoading}
+            />
 
-        <button
-          onClick={handleCreateGroup}
-          className="w-full bg-gray-600 text-white py-2 rounded hover:bg-gray-700"
-        >
-          Create Group
-        </button>
-      </div>
-        <Nav />
-    </>
+            <Box sx={{ position: 'relative' }}>
+     git pu         <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={isLoading}
+                sx={{
+                  padding: '12px',
+                  backgroundColor: 'black',
+                  color: 'white',
+                  '&:hover': { backgroundColor: '#333' },
+                  '&:disabled': {
+                    backgroundColor: 'grey.300'
+                  }
+                }}
+              >
+                {isLoading ? 'Creating...' : 'Create Group'}
+              </Button>
+              {isLoading && (
+                <CircularProgress
+                  size={24}
+                  sx={{
+                    color: 'primary.main',
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    marginTop: '-12px',
+                    marginLeft: '-12px',
+                  }}
+                />
+              )}
+            </Box>
+          </form>
+        </Paper>
+      </Box>
+      <Nav />
+    </div>
   );
 }
