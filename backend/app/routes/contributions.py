@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification
+from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification, Group
 import datetime
 import logging
 
@@ -153,59 +153,42 @@ def get_total_contributions():
         return jsonify({"error": "An unexpected error occurred while fetching total contributions"}), 500
     
 # Contribution streak API
-@contributions_bp.route('/contributions/streaks', methods=['GET'])
+@contributions_bp.route("/contributions/streaks", methods=["GET"])
 @jwt_required()
 def get_contribution_streaks():
-    """Return a ranked list of users in the group based on their contribution streaks (in days)."""
     user_id = get_jwt_identity()
-    try:
-        user = User.query.get(user_id)
+    user = User.query.get(user_id)
 
-        if not user or not user.group_id:
-            return jsonify({"error": "User not found or not in any group"}), 400
+    if not user.group_id:
+        return jsonify([])
 
-        # Get all users in the same group
-        group_users = User.query.filter_by(group_id=user.group_id).all()
+    group = Group.query.get(user.group_id)
+    daily_amount = group.daily_contribution_amount or 0
+    now = datetime.datetime.now(datetime.timezone.utc)
+    first_day = datetime.datetime(now.year, now.month, 1, tzinfo=datetime.timezone.utc)
 
-        streaks = []
+    members_data = []
+    for member in group.members:
+        total_contributed = db.session.query(db.func.sum(Transaction.amount)) \
+            .filter(
+                Transaction.user_id == member.id,
+                Transaction.group_id == group.id,
+                Transaction.type == TransactionType.CREDIT,
+                Transaction.date >= first_day,
+                Transaction.date <= now
+            ).scalar() or 0.0
 
-        for group_user in group_users:
-            contributions = (
-                Contribution.query
-                .filter_by(user_id=group_user.id, group_id=user.group_id)
-                .order_by(Contribution.date.desc())
-                .all()
-            )
+        # ✅ calculate streak = min(days_met, days_passed)
+        days_passed = now.day
+        days_met = int(total_contributed // daily_amount) if daily_amount > 0 else 0
+        streak = min(days_met, days_passed)
 
-            # Extract only the contribution dates
-            contribution_dates = []
-            for c in contributions:
-                dt = c.date
-                if isinstance(dt, datetime.datetime):
-                    contribution_dates.append(dt.date())
-                elif isinstance(dt, datetime.date):
-                    contribution_dates.append(dt)
+        members_data.append({
+            "member_id": member.id,
+            "name": member.name,
+            "streak": streak,
+            "total_contributed": total_contributed,
+            "daily_amount": daily_amount,
+        })
 
-            # Calculate streak
-            streak = 0
-            today = datetime.date.today()
-            for i in range(len(contribution_dates)):
-                expected_date = today - datetime.timedelta(days=streak)
-                if expected_date in contribution_dates:
-                    streak += 1
-                else:
-                    break
-
-            streaks.append({
-                "name": group_user.name,
-                "streak": streak
-            })
-
-        # Sort by streak descending
-        sorted_streaks = sorted(streaks, key=lambda x: x["streak"], reverse=True)
-
-        return jsonify(sorted_streaks), 200
-
-    except Exception as e:
-        logger.error(f"Error generating contribution streaks: {str(e)}")
-        return jsonify({"error": "An unexpected error occurred"}), 500
+    return jsonify(members_data), 200
