@@ -8,10 +8,10 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
 import CalculateIcon from "@mui/icons-material/Calculate";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
@@ -65,10 +65,13 @@ export default function ProminentAppBar() {
   };
 
   const isLoggedIn = Boolean(localStorage.getItem("token"));
+  const isAdmin = localStorage.getItem("is_admin") === "true"; // ✅ check admin
 
   const handleLoginLogout = () => {
     if (isLoggedIn) {
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("is_admin");
       navigate("/login");
     } else {
       navigate("/login");
@@ -133,10 +136,13 @@ export default function ProminentAppBar() {
               Finance Utilities
             </MenuItem>
 
-            <MenuItem onClick={() => handleNavigation("/create-group")}>
-              <GroupAddIcon fontSize="small" sx={{ mr: 1 }} />
-              Create Group
-            </MenuItem>
+            {/* ✅ Only show for admins */}
+            {isAdmin && (
+              <MenuItem onClick={() => handleNavigation("/admin-dashboard")}>
+                <DashboardIcon fontSize="small" sx={{ mr: 1 }} />
+                Admin Dashboard
+              </MenuItem>
+            )}
 
             <MenuItem onClick={handleLoginLogout}>
               {isLoggedIn ? (

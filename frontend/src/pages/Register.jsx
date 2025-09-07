@@ -1,6 +1,6 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import { Link,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function Register() {
@@ -12,10 +12,8 @@ function Register() {
     formState: { errors },
   } = useForm();
 
-
   const onSubmit = async (data) => {
     console.log("Registration Data:", data);
-    //Send POST request to /register endpoint using Axios
     try {
       const payload = {
         name: data.name,
@@ -26,10 +24,10 @@ function Register() {
 
       const response = await axios.post("http://127.0.0.1:5000/register", payload);
       console.log("Registration successful:", response.data);
-      alert("Account created successfully! You can now log in.")
+      alert("Account created successfully! You can now log in.");
       navigate("/login");
     } catch (error) {
-      console.error("Full error object:", error)
+      console.error("Full error object:", error);
       if (error.response) {
         console.error("Registration error:", error.response.data);
         alert(error.response.data.error || "Registration failed");
@@ -49,18 +47,23 @@ function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md bg-white shadow-md rounded-lg p-6">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">Create an Account</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
+        {/* Heading */}
+        <h2 className="text-3xl font-bold text-center text-blue-600">Create an Account</h2>
+        <p className="text-gray-500 text-center mt-2 text-sm">
+          Join us and manage your contributions easily.
+        </p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Name */}
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+          {/* Full Name */}
           <div>
             <label className="block text-gray-700 font-medium mb-1">Full Name</label>
             <input
               type="text"
               {...register("name", { required: "Name is required" })}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
           </div>
@@ -71,7 +74,7 @@ function Register() {
             <input
               type="email"
               {...register("email", { required: "Email is required" })}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
@@ -88,7 +91,7 @@ function Register() {
                   message: "Use format: 2547xxxxxxxx",
                 },
               })}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
           </div>
@@ -99,7 +102,7 @@ function Register() {
             <input
               type="password"
               {...register("password", { required: "Password is required" })}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
           </div>
@@ -113,14 +116,14 @@ function Register() {
                 validate: (value) =>
                   value === watch("password") || "Passwords do not match",
               })}
-              className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.confirmPassword && (
               <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
             )}
           </div>
 
-          {/* Terms & Conditions */}
+          {/* Terms */}
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -128,7 +131,8 @@ function Register() {
               className="mr-2"
             />
             <label className="text-sm text-gray-700">
-              I agree to the <span className="text-blue-600 hover:underline">Terms and Conditions</span>
+              I agree to the{" "}
+              <span className="text-blue-600 hover:underline">Terms and Conditions</span>
             </label>
           </div>
           {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms.message}</p>}
@@ -136,31 +140,44 @@ function Register() {
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
           >
             Register
           </button>
         </form>
 
-        {/* Login redirect */}
-        <div className="text-center mt-4">
-          <p className="text-sm">
-            Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 hover:underline">
-              Login
-            </Link>
-          </p>
+        {/* Divider */}
+        <div className="flex items-center my-6">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="px-3 text-gray-500 text-sm">Or sign up with</span>
+          <div className="flex-grow border-t border-gray-300"></div>
         </div>
 
         {/* Social Auth */}
-        <div className="flex flex-col gap-3 mt-4">
-          <button onClick={handleGoogleSignup}>
-            <img src="/google.logo.png" alt="Google Sign Up" className="w-full" />
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={handleGoogleSignup}
+            className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
+          >
+            <img src="/google.logo.png" alt="Google" className="w-5 h-5 mr-2" />
+            <span className="text-gray-700 text-sm font-medium">Sign up with Google</span>
           </button>
-          <button onClick={handleFacebookSignup}>
-            <img src="/facebook.logo.png" alt="Facebook Sign Up" className="w-full" />
+          <button
+            onClick={handleFacebookSignup}
+            className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
+          >
+            <img src="/facebook.logo.png" alt="Facebook" className="w-5 h-5 mr-2" />
+            <span className="text-gray-700 text-sm font-medium">Sign up with Facebook</span>
           </button>
         </div>
+
+        {/* Login redirect */}
+        <p className="text-center text-sm text-gray-600 mt-6">
+          Already have an account?{" "}
+          <Link to="/login" className="text-blue-600 hover:underline">
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ from routes.groups import groups_bp
 from routes.notifications import notifications_bp
 from routes.loans import loan_bp
 from routes.admin import admin_bp
+from routes.user import user_bp
 from flask_cors import CORS
 
 jwt = JWTManager()
@@ -31,6 +32,7 @@ app.register_blueprint(groups_bp)
 app.register_blueprint(notifications_bp)
 app.register_blueprint(loan_bp)
 app.register_blueprint(admin_bp, url_prefix="/admin")
+app.register_blueprint(user_bp)
 
 
 migrate = Migrate(app, db)
