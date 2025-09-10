@@ -151,9 +151,14 @@ def get_admin_dashboard(group_id):
 @admin_bp.route("/groups/<int:group_id>/loans/<int:loan_id>/approve", methods=["POST"])
 @jwt_required()
 def approve_loan(group_id, loan_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     admin = User.query.get(user_id)
     group = Group.query.get(group_id)
+
+    print("Admin user_id:", user_id)
+    print("Admin.is_admin:", admin.is_admin)
+    print("Group admin_id:", group.admin_id)
+
 
     if not admin or not admin.is_admin or not group or group.admin_id != user_id:
         return jsonify({"error": "Unauthorized"}), 403

@@ -13,8 +13,6 @@ export default function FinanceUtilities() {
   const token = localStorage.getItem("token");
   console.log("Token in FinanceUtilities:", token);
 
-
-
   // Handle Contributions
   const handleContribute = async () => {
     if (!contributionAmount) return alert("Please enter an amount.");
@@ -44,7 +42,7 @@ export default function FinanceUtilities() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/loans/request", 
+        "http://localhost:5000/loans/request",
         { amount: parseFloat(borrowAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -65,7 +63,7 @@ export default function FinanceUtilities() {
     try {
       const response = await axios.post(
         "http://localhost:5000/loans/repay",
-        { amount: parseFloat(repayAmount) }, // ✅ Now sending amount
+        { amount: parseFloat(repayAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       alert(response.data.message || "Repayment initiated");
@@ -86,7 +84,36 @@ export default function FinanceUtilities() {
           Finance Utilities
         </h1>
 
-        <div className="space-y-10">
+        {/* Responsive grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          {/* Contribute Funds */}
+          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-8 hover:shadow-xl transition">
+            <div className="flex items-center gap-3 mb-4">
+              <TrendingUp className="w-6 h-6 text-black" />
+              <h2 className="text-2xl font-semibold text-gray-900">
+                Contribute Funds
+              </h2>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Contribute to various investment opportunities and grow your
+              wealth.
+            </p>
+            <input
+              type="number"
+              placeholder="Enter amount"
+              value={contributionAmount}
+              onChange={(e) => setContributionAmount(e.target.value)}
+              className="w-full px-4 py-3 mb-5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
+            />
+            <button
+              onClick={handleContribute}
+              disabled={loading}
+              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-70"
+            >
+              {loading ? "Processing..." : "Contribute Now"}
+            </button>
+          </div>
+
           {/* Borrow Loan */}
           <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-8 hover:shadow-xl transition">
             <div className="flex items-center gap-3 mb-4">
@@ -115,8 +142,8 @@ export default function FinanceUtilities() {
             </button>
           </div>
 
-          {/* Repay Loan */}
-          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-8 hover:shadow-xl transition">
+          {/* Repay Loan (full width on desktop) */}
+          <div className="md:col-span-2 bg-white border border-gray-200 shadow-lg rounded-2xl p-8 hover:shadow-xl transition">
             <div className="flex items-center gap-3 mb-4">
               <Wallet className="w-6 h-6 text-black" />
               <h2 className="text-2xl font-semibold text-gray-900">
@@ -140,34 +167,6 @@ export default function FinanceUtilities() {
               className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-70"
             >
               {loading ? "Processing..." : "Repay Now"}
-            </button>
-          </div>
-
-          {/* Contribute Funds */}
-          <div className="bg-white border border-gray-200 shadow-lg rounded-2xl p-8 hover:shadow-xl transition">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="w-6 h-6 text-black" />
-              <h2 className="text-2xl font-semibold text-gray-900">
-                Contribute Funds
-              </h2>
-            </div>
-            <p className="text-gray-600 mb-6">
-              Contribute to various investment opportunities and grow your
-              wealth.
-            </p>
-            <input
-              type="number"
-              placeholder="Enter amount"
-              value={contributionAmount}
-              onChange={(e) => setContributionAmount(e.target.value)}
-              className="w-full px-4 py-3 mb-5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:outline-none"
-            />
-            <button
-              onClick={handleContribute}
-              disabled={loading}
-              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-70"
-            >
-              {loading ? "Processing..." : "Contribute Now"}
             </button>
           </div>
         </div>

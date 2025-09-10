@@ -19,7 +19,7 @@ def get_all_transactions():
     user = User.query.get(user_id)
 
     if not user or not user.is_admin:
-        logger.warning(f"Unauthorized access attempt by non-admin user.User ID: {user_id}")
+        logger.warning(f"Unauthorized access attempt by non-admin user. User ID: {user_id}")
         return jsonify({"error": "Only admins can view all transactions"}), 403
 
     try:
@@ -35,8 +35,9 @@ def get_all_transactions():
                 "id": transaction.id,
                 "user_id": transaction.user_id,
                 "group_id": transaction.group_id,
-                "is_admin":User.query.get(transaction.user_id).is_admin,
+                "is_admin": User.query.get(transaction.user_id).is_admin,
                 "amount": transaction.amount,
+                # ✅ will now return "credit", "debit", or "repayment"
                 "type": transaction.type.value,
                 "reason": transaction.reason,
                 "date": transaction.date.strftime("%Y-%m-%d %H:%M:%S")
@@ -74,6 +75,7 @@ def get_user_transactions():
                 "id": transaction.id,
                 "group_id": transaction.group_id,
                 "amount": transaction.amount,
+                # ✅ will now return "credit", "debit", or "repayment"
                 "type": transaction.type.value,
                 "reason": transaction.reason,
                 "date": transaction.date.strftime("%Y-%m-%d %H:%M:%S")

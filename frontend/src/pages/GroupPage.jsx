@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
+import Announcements from "../components/Announcements"; // ✅ import
 
 const BACKEND_URL = "http://127.0.0.1:5000";
 
@@ -131,36 +132,46 @@ export default function GroupPage() {
             <p className="text-lg font-semibold text-gray-700">Loading...</p>
           </div>
         ) : members.length > 0 ? (
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Your Group</h2>
-                <p className="text-gray-600">Here are the members of your current group.</p>
+          <>
+            <div className="bg-white p-6 rounded-lg shadow-lg">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">Your Group</h2>
+                  <p className="text-gray-600">Here are the members of your current group.</p>
+                </div>
+                <button
+                  onClick={leaveGroup}
+                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300"
+                >
+                  Leave Group
+                </button>
               </div>
-              <button
-                onClick={leaveGroup}
-                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300"
-              >
-                Leave Group
-              </button>
+              <ul className="mt-6 divide-y divide-gray-200">
+                {members.map((member) => (
+                  <li key={member.id} className="py-4 flex items-center justify-between">
+                    <span className="font-medium text-gray-800">{member.name}</span>
+                    <span
+                      className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                        member.is_admin
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {member.is_admin ? "Admin" : "Member"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-6 divide-y divide-gray-200">
-              {members.map((member) => (
-                <li key={member.id} className="py-4 flex items-center justify-between">
-                  <span className="font-medium text-gray-800">{member.name}</span>
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      member.is_admin
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {member.is_admin ? "Admin" : "Member"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+
+            {/* ✅ Announcements Section */}
+            <div className="mt-10">
+              <Announcements
+                groupId={members[0]?.group_id}
+                token={token}
+              />
+            </div>
+          </>
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold text-gray-800">Available Groups</h2>
@@ -184,7 +195,6 @@ export default function GroupPage() {
           </div>
         )}
       </main>
-      <Nav />
     </div>
   );
 }

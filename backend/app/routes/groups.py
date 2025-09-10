@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Group, GroupJoinRequest, GroupJoin, Notification
+from models import db, User, Group, GroupJoinRequest, GroupJoin, Notification, Announcement
 import datetime
 
 groups_bp = Blueprint('group', __name__)
@@ -194,7 +194,8 @@ def get_group_members():
     return jsonify([
         {"id": member.id,
          "name": member.name,
-         "is_admin": member.is_admin
+         "is_admin": member.is_admin,
+         "group_id": member.group_id
         }
         
         for member in members
@@ -229,3 +230,73 @@ def get_daily_amount(group_id):
         "daily_contribution_amount": group.daily_contribution_amount
     }), 200
 
+
+# ---------------------------
+# ANNOUNCEMENTS ENDPOINTS
+# ---------------------------
+@groups_bp.route("/group/<int:group_id>/announcements", methods=["GET"])
+@jwt_required()
+def get_announcements(group_id):
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "Group not found"}), 404
+
+    announcements = (
+        Announcement.query.filter_by(group_id=group_id)
+        .order_by(Announcement.date.desc())
+        .all()
+    )
+    return jsonify([
+        {"id": a.id, "title": a.title, "message": a.message, "created_at": a.date}
+        for a in announcements
+    ])
+
+
+@groups_bp.route("/group/<int:group_id>/announcements", methods=["POST"])
+@jwt_required()
+def create_announcement(group_id):
+    current_user_id = get_jwt_identity()
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "Group not found"}), 404
+
+    # ✅ Check user and admin status
+    user = User.query.get(current_user_id)
+    if not user or user.group_id != group_id or not user.is_admin:
+        return jsonify({"error": "Only admins of this group can post announcements"}), 403
+
+    data = request.get_json()
+    title = data.get("title")
+    message = data.get("message")
+    if not message:
+        return jsonify({"error": "Message is required"}), 400
+
+    announcement = Announcement(group_id=group_id, title=title, message=message)
+    db.session.add(announcement)
+    db.session.commit()
+
+    return jsonify({"message": "Announcement created successfully"}), 201
+
+
+# 
+@groups_bp.route("/group/<int:group_id>/announcements/<int:announcement_id>", methods=["DELETE"])
+@jwt_required()
+def delete_announcement(group_id, announcement_id):
+    current_user_id = get_jwt_identity()
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "Group not found"}), 404
+
+    # ✅ Check user and admin status
+    user = User.query.get(current_user_id)
+    if not user or user.group_id != group_id or not user.is_admin:
+        return jsonify({"error": "Only admins of this group can delete announcements"}), 403
+
+    announcement = Announcement.query.filter_by(id=announcement_id, group_id=group_id).first()
+    if not announcement:
+        return jsonify({"error": "Announcement not found"}), 404
+
+    db.session.delete(announcement)
+    db.session.commit()
+
+    return jsonify({"message": "Announcement deleted successfully"}), 200

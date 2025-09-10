@@ -40,6 +40,7 @@ def log_contribution(user_id, amount, receipt_number):
             status=ContributionStatus.PAID
         )
 
+        # ✅ Use CREDIT for contributions
         transaction = Transaction(
             user_id=user_id,
             group_id=user.group_id,
@@ -152,6 +153,7 @@ def get_total_contributions():
         logger.error(f"Error fetching total contributions for user {user_id}: {str(e)}")
         return jsonify({"error": "An unexpected error occurred while fetching total contributions"}), 500
     
+
 # Contribution streak API
 @contributions_bp.route("/contributions/streaks", methods=["GET"])
 @jwt_required()
@@ -169,6 +171,7 @@ def get_contribution_streaks():
 
     members_data = []
     for member in group.members:
+        #  Only count CREDIT transactions as contributions
         total_contributed = db.session.query(db.func.sum(Transaction.amount)) \
             .filter(
                 Transaction.user_id == member.id,
@@ -178,7 +181,6 @@ def get_contribution_streaks():
                 Transaction.date <= now
             ).scalar() or 0.0
 
-        # ✅ calculate streak = min(days_met, days_passed)
         days_passed = now.day
         days_met = int(total_contributed // daily_amount) if daily_amount > 0 else 0
         streak = min(days_met, days_passed)

@@ -11,6 +11,7 @@ class ContributionStatus(Enum):
 class TransactionType(Enum):
     CREDIT = "credit"
     DEBIT = "debit"
+    REPAYMENT = "repayment"
 
 class WithdrawalStatus(Enum):
     PENDING = "pending"
@@ -41,6 +42,7 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     monthly_total = db.Column(db.Float, default=0.0)
+    profile_photo = db.Column(db.String(255), nullable=True)
 
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -106,7 +108,7 @@ class WithdrawalRequest(db.Model):
     mpesa_transaction_id = db.Column(db.String(50), unique=True, nullable=True)
 
     transaction = db.relationship('Transaction', backref=db.backref('withdrawal_request', uselist=False, cascade="all, delete-orphan"))
-    group = db.relationship('Group', backref=db.backref('withdrawal_request', lazy=True, cascade="all, delete-orphan"))
+    group = db.relationship('Group', backref=db.backref('withdrawal_requests', lazy=True, cascade="all, delete-orphan"))
 
 
 class WithdrawalVotes(db.Model):
@@ -147,3 +149,14 @@ class Loan(db.Model):
     borrower = db.relationship('User', foreign_keys=[user_id], backref=db.backref('loans_borrowed', lazy=True))
     approver = db.relationship('User', foreign_keys=[approved_by], backref=db.backref('loans_approved', lazy=True))
     group = db.relationship('Group', backref=db.backref('loans', lazy=True))
+
+
+
+class Announcement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    group_id = db.Column(db.Integer, db.ForeignKey("group.id"), nullable=False)
+    title = db.Column(db.String(100))
+    message = db.Column(db.Text, nullable=False)
+    date = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc))
+
+    group = db.relationship("Group", backref="announcements")

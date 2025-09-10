@@ -26,9 +26,7 @@ def request_loan():
 
     group_id = user.group_id
 
-    
-    #  Compute group financials
-    
+    # Compute group financials
     total_contributions = db.session.query(db.func.sum(Transaction.amount)) \
         .filter(Transaction.group_id == group_id,
                 Transaction.type == TransactionType.CREDIT).scalar() or 0.0
@@ -48,9 +46,7 @@ def request_loan():
     if cash_at_hand <= 0 or available_company_limit <= 0:
         return jsonify({"error": "Group has insufficient funds to lend"}), 400
 
-    
     # Compute user’s entitlement
-
     user_contributions = db.session.query(db.func.sum(Transaction.amount)) \
         .filter(Transaction.group_id == group_id,
                 Transaction.user_id == user.id,
@@ -61,9 +57,7 @@ def request_loan():
 
     user_entitlement = (user_contributions / total_contributions) * available_company_limit
 
-
-    #  Check outstanding loans for this user
-    
+    # Check outstanding loans for this user
     user_outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
         .filter(Loan.user_id == user.id,
                 Loan.group_id == group_id,
@@ -77,9 +71,7 @@ def request_loan():
             "requested": amount
         }), 400
 
-    
-    #  Create the loan request
-
+    # Create the loan request
     loan = Loan(
         user_id=user.id,
         group_id=group_id,
@@ -149,11 +141,11 @@ def disburse_loan(loan_id):
     # call B2C to send money to borrower
     try:
         response = initiate_b2c_payment(
-            user_id = borrower.id,
-            phone_number = borrower.phone,
-            amount = loan.amount,
-            reason = "Loan Disbursement",
-            withdrawal_request_id = None
+            user_id=borrower.id,
+            phone_number=borrower.phone,
+            amount=loan.amount,
+            reason="Loan Disbursement",
+            withdrawal_request_id=None
         )
     except Exception as e:
         logger.error(f"B2C failed: {e}")
@@ -161,12 +153,12 @@ def disburse_loan(loan_id):
 
     # Log a transaction (DEBIT from group)
     tx = Transaction(
-        user_id = borrower.id,
-        group_id = loan.group_id,
-        amount = loan.amount,
-        type = TransactionType.DEBIT,
-        reason = "Loan Disbursed",
-        date = datetime.datetime.now(datetime.timezone.utc)
+        user_id=borrower.id,
+        group_id=loan.group_id,
+        amount=loan.amount,
+        type=TransactionType.DEBIT,
+        reason="Loan Disbursed",
+        date=datetime.datetime.now(datetime.timezone.utc)
     )
     db.session.add(tx)
     db.session.commit()
@@ -177,11 +169,11 @@ def disburse_loan(loan_id):
 
     # Notify borrower
     notif = Notification(
-        user_id = borrower.id,
-        group_id = loan.group_id,
-        message = f"Your loan of Ksh {loan.amount} was disbursed.",
-        type = "Loan disbursed",
-        date = datetime.datetime.now(datetime.timezone.utc)
+        user_id=borrower.id,
+        group_id=loan.group_id,
+        message=f"Your loan of Ksh {loan.amount} was disbursed.",
+        type="Loan disbursed",
+        date=datetime.datetime.now(datetime.timezone.utc)
     )
     db.session.add(notif)
     db.session.commit()
@@ -209,6 +201,7 @@ def repay_loan():
 
     # We do not mark loan as paid here — loan outstanding is decreased only when M-Pesa callback confirms payment.
     return jsonify({"message": "Repayment STK push initiated", "stk_response": response}), 200
+
 
 @loan_bp.route('/loans/pending', methods=['GET'])
 @jwt_required()
