@@ -2,7 +2,7 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_cors import CORS
 from app.config import get_config
-from models import db
+from app.models import db
 from extensions import jwt, socketio
 
 # Import blueprints
