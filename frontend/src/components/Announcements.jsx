@@ -8,7 +8,7 @@ function Announcements({ groupId, token }) {
     if (!groupId) return;
 
     axios
-      .get(`http://https://maziwa-90gd.onrender.com/group/${groupId}/announcements`, {
+      .get(`//https://maziwa-90gd.onrender.com/group/${groupId}/announcements`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => setAnnouncements(res.data))

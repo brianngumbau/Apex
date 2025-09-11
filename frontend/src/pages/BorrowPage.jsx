@@ -4,7 +4,7 @@ import ProminentAppBar from "../components/header";
 
 
 
-const BACKEND_URL = "http://https://maziwa-90gd.onrender.com";
+const BACKEND_URL = "https://maziwa-90gd.onrender.com";
 
 export default function BorrowPage() {
   const [amount, setAmount] = useState("");

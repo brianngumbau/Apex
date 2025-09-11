@@ -64,7 +64,7 @@ function PendingWithdrawals() {
       return;
     }
 
-    const url = `http://https://maziwa-90gd.onrender.com/withdrawal/${action}/${transactionId}`;
+    const url = `https://maziwa-90gd.onrender.com/withdrawal/${action}/${transactionId}`;
     try {
       const res = await axios.post(url, {}, {
         headers: { Authorization: `Bearer ${token}` },

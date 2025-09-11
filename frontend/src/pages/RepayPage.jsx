@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header"; 
 
-const BACKEND_URL = "http://maziwa-90gd.onrender.com";
+const BACKEND_URL = "https://maziwa-90gd.onrender.com";
 
 export default function RepayPage() {
   const [amount, setAmount] = useState("");
