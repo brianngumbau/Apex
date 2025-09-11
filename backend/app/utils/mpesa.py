@@ -2,9 +2,9 @@ import requests
 import datetime
 import base64
 import logging
-from models import Group, User, WithdrawalRequest, db
-from config import Config
-from routes.auth import format_phone_number
+from app.models import Group, User, WithdrawalRequest, db
+from app.config import Config
+from app.routes.auth import format_phone_number
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

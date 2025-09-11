@@ -3,9 +3,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from datetime import timedelta
-from models import db, User, TokenBlacklist, Group
-from utils.jwt_handler import decode_jwt
-from utils.helpers import format_phone_number
+from app.models import db, User, TokenBlacklist, Group
+from app.utils.jwt_handler import decode_jwt
+from app.utils.helpers import format_phone_number
 import os
 import uuid
 

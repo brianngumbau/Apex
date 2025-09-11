@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus, WithdrawalRequest, WithdrawalStatus, Notification, GroupJoin, GroupJoinRequest
+from app.models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus, WithdrawalRequest, WithdrawalStatus, Notification, GroupJoin, GroupJoinRequest
 import datetime, calendar
 
 admin_bp = Blueprint("admin", __name__)
@@ -10,7 +10,7 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.route("/groups/<int:group_id>/set_daily_amount", methods=["POST"])
 @jwt_required()
 def set_daily_amount(group_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user or not user.is_admin:
         return jsonify({"error": "Unauthorized"}), 403

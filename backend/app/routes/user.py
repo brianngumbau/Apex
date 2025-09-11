@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus
+from app.models import db, User, Group, Transaction, TransactionType, Loan, LoanStatus
 import datetime
 
 user_bp = Blueprint("user", __name__)
@@ -47,7 +47,7 @@ def account_summary():
     return jsonify({
         "group_name": group.name,
         "month": now.strftime("%B %Y"),
-        "daily_amount": float(daily_amount), 
+        "daily_amount": float(daily_amount),
         "total_contributed": float(total_contributed),
         "required_so_far": float(required_so_far),
         "pending_amount": float(pending_amount),

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import Notification, User, db
+from app.models import Notification, User, db
 import datetime
 
 notifications_bp = Blueprint("notifications", __name__)

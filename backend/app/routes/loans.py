@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Loan, Transaction, TransactionType, Notification, LoanStatus
+from app.models import db, User, Loan, Transaction, TransactionType, Notification, LoanStatus
 from utils.mpesa import initiate_b2c_payment, initiate_stk_push
 import datetime
 import logging

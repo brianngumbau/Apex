@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification, Group
+from app.models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification, Group
 import datetime
 import logging
 

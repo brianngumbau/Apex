@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Transaction, User, TransactionType
+from app.models import db, Transaction, User, TransactionType
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import logging
 

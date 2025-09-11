@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, User, Group, GroupJoinRequest, GroupJoin, Notification, Announcement
+from app.models import db, User, Group, GroupJoinRequest, GroupJoin, Notification, Announcement
 import datetime
 
 groups_bp = Blueprint('group', __name__)

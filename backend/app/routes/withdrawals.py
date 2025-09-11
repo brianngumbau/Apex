@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import (
+from app.models import (
     User, WithdrawalStatus, db, Transaction,
     TransactionType, WithdrawalRequest, Contribution,
     WithdrawalVotes, Notification
@@ -8,7 +8,7 @@ from models import (
 import datetime
 import logging
 from flask_socketio import emit, join_room
-from extensions import socketio
+from app.extensions import socketio
 
 withdrawal_bp = Blueprint("withdrawals", __name__)
 

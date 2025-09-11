@@ -1,7 +1,7 @@
 import jwt
 import datetime
 from flask import current_app
-from models import TokenBlacklist
+from app.models import TokenBlacklist
 
 
 def create_access_token(user_id):

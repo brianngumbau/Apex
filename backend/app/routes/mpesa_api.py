@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus
-from utils.mpesa import initiate_stk_push, initiate_b2c_payment
-from routes.contributions import log_contribution
-from utils.helpers import format_phone_number
+from app.models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus
+from app.utils.mpesa import initiate_stk_push, initiate_b2c_payment
+from app.routes.contributions import log_contribution
+from app.utils.helpers import format_phone_number
 import logging
 import datetime
 
