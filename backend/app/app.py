@@ -6,16 +6,16 @@ from app.models import db
 from app.extensions import jwt, socketio
 
 # Import blueprints
-from routes.auth import auth_bp
-from routes.contributions import contributions_bp
-from routes.transactions import transactions_bp
-from routes.withdrawals import withdrawal_bp
-from routes.mpesa_api import mpesa_bp
-from routes.groups import groups_bp
-from routes.notifications import notifications_bp
-from routes.loans import loan_bp
-from routes.admin import admin_bp
-from routes.user import user_bp
+from app.routes.auth import auth_bp
+from app.routes.contributions import contributions_bp
+from app.routes.transactions import transactions_bp
+from app.routes.withdrawals import withdrawal_bp
+from app.routes.mpesa_api import mpesa_bp
+from app.routes.groups import groups_bp
+from app.routes.notifications import notifications_bp
+from app.routes.loans import loan_bp
+from app.routes.admin import admin_bp
+from app.routes.user import user_bp
 
 app = Flask(__name__)
 CORS(app)
