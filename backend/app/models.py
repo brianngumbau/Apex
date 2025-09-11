@@ -19,6 +19,7 @@ class WithdrawalStatus(Enum):
     REJECTED = "rejected"
     COMPLETED = "completed"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 class GroupJoin(Enum):
     PENDING = "pending"

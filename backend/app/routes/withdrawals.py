@@ -346,3 +346,49 @@ def get_group_withdrawals():
         }
         for w in withdrawals
     ]), 200
+
+@withdrawal_bp.route("/withdrawals/<int:withdrawal_id>/cancel", methods=["POST"])
+@jwt_required()
+def cancel_withdrawal(withdrawal_id):
+    """
+    Allows an admin to cancel a pending withdrawal request.
+    """
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    withdrawal = WithdrawalRequest.query.get(withdrawal_id)
+    if not withdrawal:
+        return jsonify({"error": "Withdrawal not found"}), 404
+
+    if withdrawal.group_id != user.group_id:
+        return jsonify({"error": "Cannot cancel withdrawal from another group"}), 403
+
+    if withdrawal.status != WithdrawalStatus.PENDING:
+        return jsonify({"error": "Only pending withdrawals can be cancelled"}), 400
+
+    try:
+        # Mark as cancelled
+        withdrawal.status = WithdrawalStatus.CANCELLED
+        db.session.commit()
+
+        # Emit socket event for real-time updates
+        socketio.emit(
+            "withdrawal_updated",
+            {
+                "id": withdrawal.id,
+                "amount": withdrawal.transaction.amount,
+                "requested_by": withdrawal.transaction.user.name,
+                "status": withdrawal.status.value,
+                "approvals": withdrawal.approvals,
+                "rejections": withdrawal.rejections
+            },
+            room=f"group_{user.group_id}"
+        )
+
+        return jsonify({"message": f"Withdrawal {withdrawal.id} cancelled successfully!"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to cancel withdrawal: {str(e)}"}), 500

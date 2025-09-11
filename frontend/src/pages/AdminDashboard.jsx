@@ -9,16 +9,16 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [dailyAmount, setDailyAmount] = useState("");
 
-  // 🔹 Announcements
+  //  Announcements
   const [announcements, setAnnouncements] = useState([]);
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementMessage, setAnnouncementMessage] = useState("");
 
-  // 🔹 Approved loans & toast notification
+  //  Approved loans & toast notification
   const [approvedLoans, setApprovedLoans] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
 
-  // 🔹 Withdrawals
+  //  Withdrawals
   const [withdrawals, setWithdrawals] = useState([]);
   const [withdrawalAmount, setWithdrawalAmount] = useState("");
   const [withdrawalReason, setWithdrawalReason] = useState("");
@@ -26,7 +26,7 @@ const AdminDashboard = () => {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 🔹 Socket setup
+  //  Socket setup
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const AdminDashboard = () => {
       newSocket.emit("join_group", { group_id: user.group_id });
     });
 
-    // 🔹 Real-time listeners
+    // Real-time listeners
     newSocket.on("withdrawal_created", (data) => {
       setWithdrawals((prev) => [data, ...prev]);
     });
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
     return () => newSocket.disconnect();
   }, [user]);
 
-  // 🔹 Fetch dashboard data
+  //  Fetch dashboard data
   const fetchDashboard = async () => {
     try {
       setLoading(true);
@@ -97,7 +97,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Fetch announcements
+  //  Fetch announcements
   const fetchAnnouncements = async () => {
     try {
       const res = await axios.get(
@@ -110,7 +110,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Fetch withdrawals
+  //  Fetch withdrawals
   const fetchWithdrawals = async () => {
     try {
       const res = await axios.get(
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Delete announcement
+  //  Delete announcement
   const deleteAnnouncement = async (id) => {
     try {
       await axios.delete(
@@ -137,7 +137,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Approve loan
+  //  Approve loan
   const approveLoan = async (loanId) => {
     try {
       await axios.post(
@@ -157,7 +157,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Approve join request
+  //  Approve join request
   const approveJoin = async (requestId) => {
     try {
       await axios.post(
@@ -172,7 +172,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Reject join request
+  //  Reject join request
   const rejectJoin = async (requestId) => {
     try {
       await axios.post(
@@ -187,7 +187,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Update daily contribution amount
+  //  Update daily contribution amount
   const updateDailyAmount = async (e) => {
     e.preventDefault();
     try {
@@ -203,7 +203,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Post announcement
+  //  Post announcement
   const postAnnouncement = async (e) => {
     e.preventDefault();
     try {
@@ -221,7 +221,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔹 Submit withdrawal request
+  //  Submit withdrawal request
   const submitWithdrawal = async (e) => {
     e.preventDefault();
     try {
@@ -237,6 +237,32 @@ const AdminDashboard = () => {
       alert(err.response?.data?.error || "Failed to submit withdrawal request");
     }
   };
+
+
+//  Cancel withdrawal
+const cancelWithdrawal = async (id) => {
+  try {
+    const res = await axios.post(
+      `${import.meta.env.VITE_API_BASE_URL}/withdrawals/${id}/cancel`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const { message, amount, requested_by } = res.data;
+
+    // Remove it from state
+    setWithdrawals((prev) => prev.filter((w) => w.id !== id));
+
+    // Show a friendly toast with amount and requester
+    setToastMessage(
+      `Withdrawal of Ksh ${amount} by ${requested_by} cancelled successfully!`
+    );
+    setTimeout(() => setToastMessage(""), 4000);
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.error || "Failed to cancel withdrawal");
+  }
+};
 
   // Initial load
   useEffect(() => {
@@ -457,26 +483,41 @@ const AdminDashboard = () => {
         )}
       </div>
 
-      {/* Pending Withdrawals */}
+    {/* Pending Withdrawals */}
       <div className="bg-white rounded-2xl shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4">Pending Withdrawals</h2>
         {withdrawals.length ? (
           withdrawals.map((w) => (
-            <div key={w.id} className="p-4 border rounded mb-2 bg-gray-50">
-              <p>
-                Request of Ksh {w.amount} by {w.requested_by || "Admin"} for{" "}
-                {w.reason} on {new Date(w.date).toLocaleDateString()}
-              </p>
-              <p>
-                Status: {w.status} | Approvals: {w.approvals} | Rejections:{" "}
-                {w.rejections}
-              </p>
+            <div
+              key={w.id}
+              className="p-4 border rounded mb-2 bg-gray-50 flex justify-between items-center"
+            >
+              <div>
+                <p>
+                  Request of Ksh {w.amount} by {w.requested_by || "Admin"} for{" "}
+                  {w.reason} on {new Date(w.date).toLocaleDateString()}
+                </p>
+                <p>
+                  Status: {w.status} | Approvals: {w.approvals} | Rejections:{" "}
+                  {w.rejections}
+                </p>
+              </div>
+
+              {w.status === "pending" && (
+                <button
+                  onClick={() => cancelWithdrawal(w.id)}
+                  className="bg-red-600 text-white px-4 py-2 rounded shadow ml-4"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           ))
         ) : (
           <p>No pending withdrawals</p>
         )}
       </div>
+
 
       {/* Pending Join Requests */}
       <div className="bg-white rounded-2xl shadow-md p-6">
