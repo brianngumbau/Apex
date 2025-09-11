@@ -3,7 +3,7 @@ import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
 import Announcements from "../components/Announcements"; // ✅ import
 
-const BACKEND_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = "http://maziwa-90gd.onrender.com";
 
 export default function GroupPage() {
   const [groups, setGroups] = useState([]);

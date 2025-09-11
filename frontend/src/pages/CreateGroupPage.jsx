@@ -5,7 +5,7 @@ import { GroupAdd, Lock } from "@mui/icons-material";
 import ProminentAppBar from "../components/header";
 import Nav from "../components/Navbar";
 
-const BACKEND_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = "http://maziwa-90gd.onrender.com";
 
 export default function CreateGroupPage() {
   const [groupName, setGroupName] = useState("");

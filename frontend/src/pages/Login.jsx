@@ -17,7 +17,7 @@ function Login() {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await axios.post("http://127.0.0.1:5000/login", {
+      const response = await axios.post("http://maziwa-90gd.onrender.com/login", {
         email: data.email,
         password: data.password,
       });

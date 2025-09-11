@@ -11,7 +11,7 @@ import {
 import { CircularProgress } from "@mui/material";
 
 
-const BACKEND_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = "http://maziwa-90gd.onrender.com";
 
 // Helper function to get a Material-UI icon based on notification type
 const getNotificationIcon = (type) => {

@@ -22,7 +22,7 @@ function Register() {
         password: data.password,
       };
 
-      const response = await axios.post("http://127.0.0.1:5000/register", payload);
+      const response = await axios.post("http://maziwa-90gd.onrender.com/register", payload);
       console.log("Registration successful:", response.data);
       alert("Account created successfully! You can now log in.");
       navigate("/login");

@@ -15,7 +15,7 @@ function AvatarUpload({ onClose, onUploaded }) {
       setUploading(true);
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        "http://127.0.0.1:5000/user/profile/photo",
+        "http://maziwa-90gd.onrender.com/user/profile/photo",
         formData,
         {
           headers: {

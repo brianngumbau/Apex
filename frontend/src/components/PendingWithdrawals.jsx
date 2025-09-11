@@ -42,7 +42,7 @@ function PendingWithdrawals() {
             setLoading(false);
           }, 500);
         } else {
-          const res = await axios.get("http://127.0.0.1:5000/withdrawal/status", {
+          const res = await axios.get("http://maziwa-90gd.onrender.com/withdrawal/status", {
             headers: { Authorization: `Bearer ${token}` },
           });
           const pending = res.data.filter((w) => w.status === "PENDING");
@@ -64,7 +64,7 @@ function PendingWithdrawals() {
       return;
     }
 
-    const url = `http://127.0.0.1:5000/withdrawal/${action}/${transactionId}`;
+    const url = `http://https://maziwa-90gd.onrender.com/withdrawal/${action}/${transactionId}`;
     try {
       const res = await axios.post(url, {}, {
         headers: { Authorization: `Bearer ${token}` },
