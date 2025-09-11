@@ -3,7 +3,7 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from app.config import get_config
 from app.models import db
-from extensions import jwt, socketio
+from app.extensions import jwt, socketio
 
 # Import blueprints
 from routes.auth import auth_bp
