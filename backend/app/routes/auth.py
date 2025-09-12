@@ -36,7 +36,7 @@ def register():
 
     formatted_phone = format_phone_number(data["phone"])
     if not formatted_phone:
-        return jsonify({"error": "Invalid phone number format. Use 2547xxxxxxxx"}), 400
+        return jsonify({"error": "Invalid phone number format. Use 254xxxxxxxxx"}), 400
 
     if User.query.filter((User.email == data["email"]) | (User.phone == formatted_phone)).first():
         return jsonify({"error": "User with email or phone already exists"}), 409
