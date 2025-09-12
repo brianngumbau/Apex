@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Nav from "../components/Navbar";
 import ProminentAppBar from "../components/header";
-import Announcements from "../components/Announcements"; // ✅ import
+import Announcements from "../components/Announcements";
 
 const BACKEND_URL = "https://maziwa-90gd.onrender.com";
 
@@ -10,6 +9,10 @@ export default function GroupPage() {
   const [members, setMembers] = useState([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // ✅ For Create Group
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -74,6 +77,30 @@ export default function GroupPage() {
       }
     } catch (error) {
       setMessage("Error leaving group: " + error.message);
+    }
+  };
+
+  // ✅ Create Group Logic
+  const createGroup = async () => {
+    if (!newGroupName.trim()) {
+      setMessage("Group name cannot be empty.");
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/group/create`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ group_name: newGroupName }),
+      });
+      const data = await res.json();
+      setMessage(data.message || data.error);
+      if (res.ok) {
+        setShowCreateModal(false);
+        setNewGroupName("");
+        fetchMembers(); // user auto-added to the group
+      }
+    } catch (error) {
+      setMessage("Error creating group: " + error.message);
     }
   };
 
@@ -166,16 +193,25 @@ export default function GroupPage() {
 
             {/* ✅ Announcements Section */}
             <div className="mt-10">
-              <Announcements
-                groupId={members[0]?.group_id}
-                token={token}
-              />
+              <Announcements groupId={members[0]?.group_id} token={token} />
             </div>
           </>
         ) : (
           <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800">Available Groups</h2>
-            <p className="text-gray-600">You are not currently in a group. Join one below!</p>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Available Groups</h2>
+                <p className="text-gray-600">
+                  You are not currently in a group. Join one below or create a new one.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors duration-300"
+              >
+                + Create Group
+              </button>
+            </div>
             <ul className="mt-6 space-y-4">
               {groups.map((group) => (
                 <li
@@ -195,6 +231,36 @@ export default function GroupPage() {
           </div>
         )}
       </main>
+
+      {/* ✅ Create Group Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <h2 className="text-xl font-bold mb-4">Create a New Group</h2>
+            <input
+              type="text"
+              placeholder="Enter group name"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4"
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createGroup}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
