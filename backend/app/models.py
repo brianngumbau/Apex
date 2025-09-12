@@ -1,6 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 import datetime
 from enum import Enum
+import secrets
 
 db = SQLAlchemy()
 
@@ -50,6 +51,7 @@ class Group(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     daily_contribution_amount = db.Column(db.Float, default=0.0, nullable=False)
+    join_code = db.Column(db.String(10), unique=True, nullable=False, default=lambda: secrets.token_hex(3).upper())
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
     members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan", foreign_keys=[User.group_id])

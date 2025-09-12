@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models import db, User, Group, GroupJoinRequest, GroupJoin, Notification, Announcement
 import datetime
+import secrets
 
 groups_bp = Blueprint('group', __name__)
 
@@ -21,7 +22,7 @@ def create_group():
     if "group_name" not in data:
         return jsonify({"error": "Group name is required"}), 400
     
-    new_group = Group(name=data["group_name"], admin_id=user.id)
+    new_group = Group(name=data["group_name"], admin_id=user.id, join_code=secrets.token_hex(3).upper())
     db.session.add(new_group)
     db.session.commit()
 

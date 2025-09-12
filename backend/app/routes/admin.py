@@ -135,6 +135,7 @@ def get_admin_dashboard(group_id):
     response = {
         "group_id": group.id,
         "group_name": group.name,
+        "join_code": group.join_code,
         "daily_contribution_amount": daily_amount,
         "required_so_far": required_so_far,
         "month": now.strftime("%B %Y"),
