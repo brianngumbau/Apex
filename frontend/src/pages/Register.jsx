@@ -87,9 +87,10 @@ function Register() {
               {...register("phone", {
                 required: "Phone number is required",
                 pattern: {
-                  value: /^2547\d{8}$/,
-                  message: "Use format: 2547xxxxxxxx",
+                  value: /^254(7\d{8}|1\d{8})$/,
+                  message: "Use format: 2547xxxxxxxx or 2541xxxxxxxx",
                 },
+
               })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
