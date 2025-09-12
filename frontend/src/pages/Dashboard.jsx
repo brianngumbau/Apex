@@ -26,6 +26,8 @@ function Dashboard() {
         );
         console.log("✅ User profile fetched:", res.data);
         setUser(res.data);
+        localStorage.setItem("user", JSON.stringify(res.data));
+        localStorage.setItem("is_admin", res.data.is_admin ? "true" : "false");
 
         console.log("🔄 Fetching withdrawals...");
         const wdRes = await axios.get(

@@ -97,7 +97,20 @@ export default function GroupPage() {
       if (res.ok) {
         setShowCreateModal(false);
         setNewGroupName("");
-        fetchMembers(); // user auto-added to the group
+        await fetchMembers();
+        localStorage.setItem("is_admin", "true");
+
+        try {
+          const profileRes = await fetch(`${BACKEND_URL}/user/profile`, {
+            headers: authHeaders,
+          });
+          const profileData = await profileRes.json();
+          if (profileRes.ok) {
+            localStorage.setItem("user", JSON.stringify(profileData));
+          }
+        } catch (err) {
+          console.error("Failed to refresh profile after group creation:", err);
+        }
       }
     } catch (error) {
       setMessage("Error creating group: " + error.message);
