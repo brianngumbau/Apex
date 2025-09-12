@@ -20,7 +20,7 @@ const ContributionStreakTable = () => {
           return;
         }
 
-        const response = await axios.get('http://localhost:5000/contributions/streaks', {
+        const response = await axios.get('https://maziwa-90gd.onrender.com/contributions/streaks', {
           headers: {
             Authorization: `Bearer ${token}`,
           },

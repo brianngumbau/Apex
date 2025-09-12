@@ -19,13 +19,13 @@ function AccountSummary() {
     const fetchData = async () => {
       try {
         // Fetch account summary
-        const summaryRes = await axios.get("http://localhost:5000/user/account_summary", {
+        const summaryRes = await axios.get("https://maziwa-90gd.onrender.com/user/account_summary", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSummary(summaryRes.data);
 
         // Fetch group contributions total
-        const groupRes = await axios.get("http://localhost:5000/contributions/total", {
+        const groupRes = await axios.get("https://maziwa-90gd.onrender.com/contributions/total", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setGroupTotal(groupRes.data.total_contributions || 0);

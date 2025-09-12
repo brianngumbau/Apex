@@ -19,7 +19,7 @@ export default function FinanceUtilities() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/mpesa/stkpush",
+        "https://maziwa-90gd.onrender.com/mpesa/stkpush",
         { amount: parseFloat(contributionAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -42,7 +42,7 @@ export default function FinanceUtilities() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/loans/request",
+        "https://maziwa-90gd.onrender.com/loans/request",
         { amount: parseFloat(borrowAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -62,7 +62,7 @@ export default function FinanceUtilities() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:5000/loans/repay",
+        "https://maziwa-90gd.onrender.com/loans/repay",
         { amount: parseFloat(repayAmount) },
         { headers: { Authorization: `Bearer ${token}` } }
       );
