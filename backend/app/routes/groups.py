@@ -300,3 +300,50 @@ def delete_announcement(group_id, announcement_id):
     db.session.commit()
 
     return jsonify({"message": "Announcement deleted successfully"}), 200
+
+
+@groups_bp.route("/group/join/code", methods=["POST"])
+@jwt_required()
+def join_with_code():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if user.group_id:
+        return jsonify({"error": "You are already in a group"}), 400
+
+    data = request.get_json()
+    code = data.get("code")
+    if not code:
+        return jsonify({"error": "Code is required"}), 400
+
+    group = Group.query.filter_by(join_code=code).first()
+    if not group:
+        return jsonify({"error": "Invalid join code"}), 404
+
+    # Send join request
+    existing_request = GroupJoinRequest.query.filter_by(
+        user_id=user.id, group_id=group.id, status=GroupJoin.PENDING
+    ).first()
+    if existing_request:
+        return jsonify({"error": "You already have a pending join request"}), 400
+
+    join_request = GroupJoinRequest(
+        user_id=user.id,
+        group_id=group.id,
+        status=GroupJoin.PENDING,
+        date=datetime.datetime.now(datetime.timezone.utc),
+    )
+    db.session.add(join_request)
+    db.session.commit()
+
+    notification = Notification(
+        user_id=group.admin_id,
+        group_id=group.id,
+        message=f"{user.name} has requested to join using a code.",
+        type="Join request",
+        date=datetime.datetime.now(datetime.timezone.utc),
+    )
+    db.session.add(notification)
+    db.session.commit()
+
+    return jsonify({"message": "Join request sent. Awaiting admin approval"}), 200

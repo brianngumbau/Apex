@@ -14,6 +14,9 @@ export default function GroupPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
 
+  // ✅ For Join with Code
+  const [joinCode, setJoinCode] = useState("");
+
   const token = localStorage.getItem("token");
 
   const authHeaders = {
@@ -60,6 +63,28 @@ export default function GroupPage() {
       setMessage(data.message || data.error);
     } catch (error) {
       setMessage("Error requesting to join group: " + error.message);
+    }
+  };
+
+  const joinWithCode = async () => {
+    if (!joinCode.trim()) {
+      setMessage("Please enter a group code.");
+      return;
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/group/join/code`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ code: joinCode }),
+      });
+      const data = await res.json();
+      setMessage(data.message || data.error);
+      if (res.ok) {
+        await fetchMembers();
+        setJoinCode("");
+      }
+    } catch (error) {
+      setMessage("Error joining with code: " + error.message);
     }
   };
 
@@ -225,6 +250,28 @@ export default function GroupPage() {
                 + Create Group
               </button>
             </div>
+
+            {/* ✅ Join with Code */}
+            <div className="mb-6 p-4 border rounded-md bg-gray-50">
+              <h3 className="font-semibold text-gray-700 mb-2">Join with Code</h3>
+              <div className="flex space-x-3">
+                <input
+                  type="text"
+                  placeholder="Enter group code"
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value)}
+                />
+                <button
+                  onClick={joinWithCode}
+                  className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300"
+                >
+                  Join
+                </button>
+              </div>
+            </div>
+
+            {/* Existing group list */}
             <ul className="mt-6 space-y-4">
               {groups.map((group) => (
                 <li

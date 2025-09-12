@@ -238,31 +238,30 @@ const AdminDashboard = () => {
     }
   };
 
+  //  Cancel withdrawal
+  const cancelWithdrawal = async (id) => {
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/withdrawals/${id}/cancel`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-//  Cancel withdrawal
-const cancelWithdrawal = async (id) => {
-  try {
-    const res = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL}/withdrawals/${id}/cancel`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      const { message, amount, requested_by } = res.data;
 
-    const { message, amount, requested_by } = res.data;
+      // Remove it from state
+      setWithdrawals((prev) => prev.filter((w) => w.id !== id));
 
-    // Remove it from state
-    setWithdrawals((prev) => prev.filter((w) => w.id !== id));
-
-    // Show a friendly toast with amount and requester
-    setToastMessage(
-      `Withdrawal of Ksh ${amount} by ${requested_by} cancelled successfully!`
-    );
-    setTimeout(() => setToastMessage(""), 4000);
-  } catch (err) {
-    console.error(err);
-    alert(err.response?.data?.error || "Failed to cancel withdrawal");
-  }
-};
+      // Show a friendly toast with amount and requester
+      setToastMessage(
+        `Withdrawal of Ksh ${amount} by ${requested_by} cancelled successfully!`
+      );
+      setTimeout(() => setToastMessage(""), 4000);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Failed to cancel withdrawal");
+    }
+  };
 
   // Initial load
   useEffect(() => {
@@ -309,6 +308,14 @@ const cancelWithdrawal = async (id) => {
         </span>
       </p>
 
+      {/* 🔹 Show Group Join Code */}
+      {dashboard.join_code && (
+        <p className="text-center text-gray-800">
+          Group Join Code:{" "}
+          <span className="font-mono font-bold">{dashboard.join_code}</span>
+        </p>
+      )}
+
       {/* 🔹 Withdrawal Request Form */}
       <div className="bg-white p-6 rounded-2xl shadow-md">
         <h2 className="text-xl font-semibold mb-4">Request Withdrawal</h2>
@@ -334,26 +341,6 @@ const cancelWithdrawal = async (id) => {
             className="bg-blue-600 text-white px-4 py-2 rounded shadow"
           >
             Submit
-          </button>
-        </form>
-      </div>
-
-      {/* Set Daily Contribution */}
-      <div className="bg-white rounded-2xl shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Set Daily Contribution</h2>
-        <form onSubmit={updateDailyAmount} className="flex space-x-4">
-          <input
-            type="number"
-            value={dailyAmount}
-            onChange={(e) => setDailyAmount(e.target.value)}
-            className="border px-3 py-2 rounded w-40"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded shadow"
-          >
-            Update
           </button>
         </form>
       </div>
