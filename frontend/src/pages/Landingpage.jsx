@@ -1,12 +1,12 @@
 import React from "react";
-import LandingPageAppBar from "../components/LandingPageHeader";
+import LandingPageAppBar from "../components/LandingPageHeader"; // no longer used
 import { Link } from "react-router-dom"; // ✅ Fixed import
 import { motion } from "framer-motion";
 
 function Landingpage() {
   return (
     <>
-      <LandingPageAppBar />
+      
 
       <main className="flex flex-col items-center px-4 py-6 space-y-14 bg-gray-100 text-center pb-20">
 

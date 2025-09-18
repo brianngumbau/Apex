@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ProminentAppBar from "../components/header";
 import Announcements from "../components/Announcements";
+import Nav from "../components/Navbar";
 
 const BACKEND_URL = "https://maziwa-90gd.onrender.com";
 
@@ -206,7 +207,7 @@ export default function GroupPage() {
                 </div>
                 <button
                   onClick={leaveGroup}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors duration-300"
+                  className="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
                 >
                   Leave Group
                 </button>
@@ -245,7 +246,7 @@ export default function GroupPage() {
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="bg-green-600 text-white px-5 py-2 rounded-md hover:bg-green-700 transition-colors duration-300"
+                className="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
               >
                 + Create Group
               </button>
@@ -264,30 +265,14 @@ export default function GroupPage() {
                 />
                 <button
                   onClick={joinWithCode}
-                  className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300"
+                  className="px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition"
                 >
                   Join
                 </button>
               </div>
             </div>
 
-            {/* Existing group list */}
-            <ul className="mt-6 space-y-4">
-              {groups.map((group) => (
-                <li
-                  key={group.id}
-                  className="p-4 border rounded-md flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span className="font-semibold text-lg text-gray-800">{group.name}</span>
-                  <button
-                    onClick={() => requestJoin(group.id)}
-                    className="bg-blue-600 text-white px-5 py-2 rounded-md hover:bg-blue-700 transition-colors duration-300"
-                  >
-                    Request to Join
-                  </button>
-                </li>
-              ))}
-            </ul>
+            
           </div>
         )}
       </main>
@@ -313,7 +298,7 @@ export default function GroupPage() {
               </button>
               <button
                 onClick={createGroup}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                className="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
               >
                 Create
               </button>
@@ -321,6 +306,7 @@ export default function GroupPage() {
           </div>
         </div>
       )}
+      <Nav />
     </div>
   );
 }
