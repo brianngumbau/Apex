@@ -129,6 +129,27 @@ def get_contributions():
         return jsonify({"error": "An unexpected error occurred while fetching contributions"}), 500
 
 
+@contributions_bp.route('/contributions/monthly', methods=['GET'])
+@jwt_required()
+def get_monthly_group_contributions():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"monthly_contributions": 0}), 200
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    first_day = datetime.datetime(now.year, now.month, 1, tzinfo=datetime.timezone.utc)
+
+    total = db.session.query(db.func.sum(Contribution.amount)).filter(
+        Contribution.group_id == user.group_id,
+        Contribution.date >= first_day.date(),
+        Contribution.date <= now.date()
+    ).scalar() or 0.0
+
+    return jsonify({"monthly_contributions": total}), 200
+
+
 @contributions_bp.route('/contributions/total', methods=['GET'])
 @jwt_required()
 def get_total_contributions():

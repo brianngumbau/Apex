@@ -21,8 +21,8 @@ def account_summary():
     now = datetime.datetime.now(datetime.timezone.utc)
     first_day = datetime.datetime(now.year, now.month, 1, tzinfo=datetime.timezone.utc)
 
-    # Total contributed this month
-    total_contributed = db.session.query(db.func.sum(Transaction.amount)) \
+    # Total contributed by user (this month)
+    monthly_contributed = db.session.query(db.func.sum(Transaction.amount)) \
         .filter(
             Transaction.user_id == user.id,
             Transaction.group_id == group.id,
@@ -31,12 +31,36 @@ def account_summary():
             Transaction.date <= now
         ).scalar() or 0.0
 
-    # Required contributions (based on daily amount set by admin)
+    # All-time contributions by user
+    user_total_contributions = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.user_id == user.id,
+            Transaction.group_id == group.id,
+            Transaction.type == TransactionType.CREDIT
+        ).scalar() or 0.0
+
+    # All-time contributions by group
+    group_total_contributions = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.group_id == group.id,
+            Transaction.type == TransactionType.CREDIT
+        ).scalar() or 0.0
+
+    # Monthly group contributions
+    group_monthly_contributions = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.group_id == group.id,
+            Transaction.type == TransactionType.CREDIT,
+            Transaction.date >= first_day,
+            Transaction.date <= now
+        ).scalar() or 0.0
+
+    # Required contributions so far
     daily_amount = group.daily_contribution_amount or 0
     required_so_far = daily_amount * now.day
-    pending_amount = max(0, required_so_far - total_contributed)
+    pending_amount = max(0, required_so_far - monthly_contributed)
 
-    # Outstanding loan
+    # Outstanding loan (user-specific)
     outstanding_loan = db.session.query(db.func.sum(Loan.outstanding)) \
         .filter(
             Loan.user_id == user.id,
@@ -44,12 +68,58 @@ def account_summary():
             Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])
         ).scalar() or 0.0
 
+    # ===============================
+    # Adjusted group funds
+    # ===============================
+
+    # Withdrawals made by admin
+    total_withdrawals = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.group_id == group.id,
+            Transaction.type == TransactionType.DEBIT,
+            Transaction.reason == "withdrawal"
+        ).scalar() or 0.0
+
+    # Loans disbursed
+    total_loans_disbursed = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.group_id == group.id,
+            Transaction.reason == "loan_disbursement"
+        ).scalar() or 0.0
+
+    # Loan repayments
+    total_loans_repaid = db.session.query(db.func.sum(Transaction.amount)) \
+        .filter(
+            Transaction.group_id == group.id,
+            Transaction.reason == "loan_repayment"
+        ).scalar() or 0.0
+
+    adjusted_group_funds = (
+        group_total_contributions
+        - total_withdrawals
+        - total_loans_disbursed
+        + total_loans_repaid
+    )
+
+    # Loan limit
+    loan_limit = 0.0
+    percentage_share = 0.0
+    if group_total_contributions > 0 and user_total_contributions > 0 and adjusted_group_funds > 0:
+        percentage_share = (user_total_contributions / group_total_contributions) * 100
+        loan_limit = (user_total_contributions / group_total_contributions) * adjusted_group_funds
+
     return jsonify({
         "group_name": group.name,
         "month": now.strftime("%B %Y"),
         "daily_amount": float(daily_amount),
-        "total_contributed": float(total_contributed),
+        "monthly_contributed": float(monthly_contributed),
         "required_so_far": float(required_so_far),
         "pending_amount": float(pending_amount),
-        "outstanding_loan": float(outstanding_loan)
+        "outstanding_loan": float(outstanding_loan),
+        "group_total_contributions": float(group_total_contributions),
+        "group_monthly_contributions": float(group_monthly_contributions),
+        "adjusted_group_funds": float(adjusted_group_funds),
+        "user_total_contributions": float(user_total_contributions),
+        "percentage_share": round(percentage_share, 2),
+        "loan_limit": round(loan_limit, 2)
     }), 200
