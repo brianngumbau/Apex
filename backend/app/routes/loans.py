@@ -9,6 +9,7 @@ loan_bp = Blueprint('loan', __name__)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 @loan_bp.route('/loans/request', methods=['POST'])
 @jwt_required()
 def request_loan():
@@ -38,7 +39,7 @@ def request_loan():
 
     outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
         .filter(Loan.group_id == group_id,
-                Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])).scalar() or 0.0
+                Loan.status == LoanStatus.DISBURSED).scalar() or 0.0
 
     cash_at_hand = total_contributions - total_withdrawals - outstanding_loans
     available_company_limit = 0.4 * cash_at_hand
@@ -61,7 +62,7 @@ def request_loan():
     user_outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
         .filter(Loan.user_id == user.id,
                 Loan.group_id == group_id,
-                Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])).scalar() or 0.0
+                Loan.status == LoanStatus.DISBURSED).scalar() or 0.0
 
     if user_outstanding_loans + amount > user_entitlement:
         return jsonify({
@@ -71,78 +72,23 @@ def request_loan():
             "requested": amount
         }), 400
 
-    # Create the loan request
+    # Create loan record (already disbursed)
     loan = Loan(
         user_id=user.id,
         group_id=group_id,
         amount=amount,
         outstanding=amount,
-        status=LoanStatus.PENDING
+        status=LoanStatus.DISBURSED,
+        date=datetime.datetime.now(datetime.timezone.utc)
     )
     db.session.add(loan)
     db.session.commit()
 
-    # Notify admin
-    admin = User.query.get(user.group.admin_id) if user.group else None
-    if admin:
-        notif = Notification(
-            user_id=admin.id,
-            group_id=group_id,
-            message=f"{user.name} requested a loan of Ksh {amount}",
-            type="Loan request",
-            date=datetime.datetime.now(datetime.timezone.utc)
-        )
-        db.session.add(notif)
-        db.session.commit()
-
-    return jsonify({
-        "message": "Loan request submitted",
-        "loan_id": loan.id,
-        "your_entitlement": user_entitlement,
-        "requested": amount
-    }), 201
-
-
-@loan_bp.route('/loans/approve/<int:loan_id>', methods=['POST'])
-@jwt_required()
-def approve_loan(loan_id):
-    user_id = get_jwt_identity()
-    admin = User.query.get(user_id)
-    if not admin or not admin.is_admin:
-        return jsonify({"error": "Unauthorized"}), 403
-
-    loan = Loan.query.get(loan_id)
-    if not loan or loan.status != LoanStatus.PENDING:
-        return jsonify({"error": "Loan not found or already processed"}), 404
-
-    loan.status = LoanStatus.APPROVED
-    loan.approved_by = admin.id
-    db.session.commit()
-
-    return jsonify({"message": "Loan approved"}), 200
-
-
-@loan_bp.route('/loans/disburse/<int:loan_id>', methods=['POST'])
-@jwt_required()
-def disburse_loan(loan_id):
-    user_id = get_jwt_identity()
-    admin = User.query.get(user_id)
-    if not admin or not admin.is_admin:
-        return jsonify({"error": "Unauthorized"}), 403
-
-    loan = Loan.query.get(loan_id)
-    if not loan or loan.status != LoanStatus.APPROVED:
-        return jsonify({"error": "Loan not found or not approved"}), 404
-
-    borrower = loan.borrower
-    if not borrower:
-        return jsonify({"error": "Borrower not found"}), 404
-
-    # call B2C to send money to borrower
+    # Call B2C to disburse funds to borrower
     try:
         response = initiate_b2c_payment(
-            user_id=borrower.id,
-            phone_number=borrower.phone,
+            user_id=user.id,
+            phone_number=user.phone,
             amount=loan.amount,
             reason="Loan Disbursement",
             withdrawal_request_id=None
@@ -151,9 +97,9 @@ def disburse_loan(loan_id):
         logger.error(f"B2C failed: {e}")
         return jsonify({"error": "B2C disbursement failed", "details": str(e)}), 500
 
-    # Log a transaction (DEBIT from group)
+    # Log a DEBIT transaction from group
     tx = Transaction(
-        user_id=borrower.id,
+        user_id=user.id,
         group_id=loan.group_id,
         amount=loan.amount,
         type=TransactionType.DEBIT,
@@ -163,14 +109,13 @@ def disburse_loan(loan_id):
     db.session.add(tx)
     db.session.commit()
 
-    loan.status = LoanStatus.DISBURSED
     loan.disbursed_transaction_id = tx.id
     db.session.commit()
 
     # Notify borrower
     notif = Notification(
-        user_id=borrower.id,
-        group_id=loan.group_id,
+        user_id=user.id,
+        group_id=group_id,
         message=f"Your loan of Ksh {loan.amount} was disbursed.",
         type="Loan disbursed",
         date=datetime.datetime.now(datetime.timezone.utc)
@@ -178,7 +123,13 @@ def disburse_loan(loan_id):
     db.session.add(notif)
     db.session.commit()
 
-    return jsonify({"message": "Loan disbursed", "b2c_response": response}), 200
+    return jsonify({
+        "message": "Loan successfully disbursed",
+        "loan_id": loan.id,
+        "your_entitlement": user_entitlement,
+        "requested": amount,
+        "b2c_response": response
+    }), 201
 
 
 @loan_bp.route('/loans/repay', methods=['POST'])
@@ -199,26 +150,5 @@ def repay_loan():
         logger.error(f"STK push failed: {str(e)}")
         return jsonify({"error": "STK push failed", "details": str(e)}), 500
 
-    # We do not mark loan as paid here — loan outstanding is decreased only when M-Pesa callback confirms payment.
+    # Loan outstanding will be reduced in callback
     return jsonify({"message": "Repayment STK push initiated", "stk_response": response}), 200
-
-
-@loan_bp.route('/loans/pending', methods=['GET'])
-@jwt_required()
-def get_pending_loans():
-    user_id = get_jwt_identity()
-    admin = User.query.get(user_id)
-    if not admin or not admin.is_admin:
-        return jsonify({"error": "Unauthorized"}), 403
-
-    pending_loans = Loan.query.filter_by(status=LoanStatus.PENDING).all()
-    result = [
-        {
-            "id": loan.id,
-            "user": loan.borrower.name if loan.borrower else None,
-            "amount": loan.amount,
-            "requested_on": loan.date.isoformat() if loan.date else None
-        }
-        for loan in pending_loans
-    ]
-    return jsonify(result), 200

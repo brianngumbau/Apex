@@ -68,9 +68,8 @@ def account_summary():
             Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.APPROVED])
         ).scalar() or 0.0
 
-    # ===============================
+    
     # Adjusted group funds
-    # ===============================
 
     # Withdrawals made by admin
     total_withdrawals = db.session.query(db.func.sum(Transaction.amount)) \
@@ -101,12 +100,14 @@ def account_summary():
         + total_loans_repaid
     )
 
-    # Loan limit
+    # Loan limit (same as request_loan formula)
     loan_limit = 0.0
     percentage_share = 0.0
     if group_total_contributions > 0 and user_total_contributions > 0 and adjusted_group_funds > 0:
         percentage_share = (user_total_contributions / group_total_contributions) * 100
-        loan_limit = (user_total_contributions / group_total_contributions) * adjusted_group_funds
+        available_company_limit = 0.4 * adjusted_group_funds
+        loan_limit = (user_total_contributions / group_total_contributions) * available_company_limit
+
 
     return jsonify({
         "group_name": group.name,

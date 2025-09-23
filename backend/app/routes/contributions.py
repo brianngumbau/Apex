@@ -14,6 +14,11 @@ contributions_bp = Blueprint('contributions', __name__)
 def log_contribution(user_id, amount, receipt_number):
     """Logs a contribution and its associated transaction."""
     try:
+        existing = Transaction.query.filter_by(reference=receipt_number).first()
+        if existing:
+            logger.warning(f"Duplicate contribution attempt ignored for receipt {receipt_number}")
+            return {"message": "Duplicate contribution ignored"}, 200
+            
         user = User.query.get(user_id)
         if not user:
             logger.warning(f"Contribution failed: User {user_id} not found.")

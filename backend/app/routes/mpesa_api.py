@@ -54,71 +54,89 @@ def stk_push():
 
 @mpesa_bp.route("/callback/transaction", methods=["POST"])
 def mpesa_callback():
-    """
-    Handles M-Pesa STK push callback.
-    Logs contributions and applies payments to outstanding loans.
-    """
     data = request.get_json()
-    logger.info(f"M-Pesa Callback Data: {data}")
-
-    stk_callback = data.get("Body", {}).get("stkCallback", {})
-    if not stk_callback:
-        logger.error("Invalid callback: missing stkCallback")
-        return jsonify({"error": "Invalid callback data"}), 400
-
-    callback_metadata = stk_callback.get("CallbackMetadata", {}).get("Item", [])
-    receipt_number = amount = phone_number = None
-
-    for item in callback_metadata:
-        if item["Name"] == "MpesaReceiptNumber":
-            receipt_number = item["Value"]
-        elif item["Name"] == "Amount":
-            amount = float(item["Value"])
-        elif item["Name"] == "PhoneNumber":
-            phone_number = str(item["Value"])
-
-    if not all([receipt_number, amount, phone_number]):
-        logger.error("Callback missing required fields")
-        return jsonify({"error": "Invalid callback data"}), 400
-
-    user = User.query.filter_by(phone=phone_number).first()
-    if not user:
-        logger.warning(f"User with phone {phone_number} not found")
-        return jsonify({"error": "User not found"}), 404
-
-    if Transaction.query.filter_by(reference=receipt_number).first():
-        logger.warning(f"Duplicate transaction detected: {receipt_number}")
-        return jsonify({"error": "Duplicate transaction detected"}), 400
-
-    # Log contribution first
-    response, status_code = log_contribution(user.id, amount, receipt_number)
-    if status_code != 201:
-        return jsonify(response), status_code
-
-    # Apply remaining amount to outstanding loans
-    remaining = float(amount)
-    loans = Loan.query.filter(
-        Loan.user_id == user.id,
-        Loan.status == LoanStatus.DISBURSED
-    ).order_by(Loan.date).all()
-
-    for loan in loans:
-        if remaining <= 0:
-            break
-        pay_amount = min(remaining, loan.outstanding)
-        loan.outstanding -= pay_amount
-        remaining -= pay_amount
-        if loan.outstanding == 0:
-            loan.status = LoanStatus.REPAID
-        db.session.add(loan)
 
     try:
+        body = data.get("Body", {})
+        stk_callback = body.get("stkCallback", {})
+        result_code = stk_callback.get("ResultCode")
+        result_desc = stk_callback.get("ResultDesc")
+        callback_metadata = stk_callback.get("CallbackMetadata", {})
+        items = callback_metadata.get("Item", [])
+
+        # Extract values
+        receipt_number = None
+        phone = None
+        pay_amount = None
+
+        for item in items:
+            if item.get("Name") == "MpesaReceiptNumber":
+                receipt_number = item.get("Value")
+            elif item.get("Name") == "PhoneNumber":
+                phone = str(item.get("Value"))
+            elif item.get("Name") == "Amount":
+                pay_amount = float(item.get("Value"))
+
+        # If failed transaction
+        if result_code != 0:
+            return jsonify({"message": f"Payment failed: {result_desc}"}), 400
+
+        # Match user by phone
+        user = User.query.filter_by(phone=phone).first()
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        # --- Handle repayment if outstanding loan exists ---
+        active_loan = Loan.query.filter(
+            Loan.user_id == user.id,
+            Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.PARTIALLY_REPAID])
+        ).first()
+
+        if active_loan:
+            # Deduct from outstanding
+            active_loan.outstanding -= pay_amount
+
+            if active_loan.outstanding <= 0:
+                active_loan.status = LoanStatus.REPAID
+                active_loan.outstanding = 0
+            else:
+                active_loan.status = LoanStatus.PARTIALLY_REPAID
+
+            # Log repayment transaction
+            repayment_tx = Transaction(
+                user_id=user.id,
+                group_id=user.group_id,
+                amount=pay_amount,
+                type=TransactionType.CREDIT,   # Money flowing into group
+                reason="Loan Repayment",
+                reference=receipt_number,
+                date=datetime.datetime.now(datetime.timezone.utc)
+            )
+            db.session.add(repayment_tx)
+
+            # Send notification
+            notif = Notification(
+                user_id=user.id,
+                message=f"Loan repayment of KES {pay_amount:.2f} received. Outstanding balance: KES {active_loan.outstanding:.2f}"
+            )
+            db.session.add(notif)
+
+        else:
+            # Treat as a normal contribution
+            log_contribution(user.id, pay_amount, receipt_number)
+
+            notif = Notification(
+                user_id=user.id,
+                message=f"Contribution of KES {pay_amount:.2f} received successfully!"
+            )
+            db.session.add(notif)
+
         db.session.commit()
+        return jsonify({"message": "Payment processed successfully"}), 200
+
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error updating loan repayments: {e}")
-
-    return jsonify(response), status_code
+        return jsonify({"error": str(e)}), 500
 
 
 @mpesa_bp.route("/mpesa/withdrawal", methods=["POST"])
