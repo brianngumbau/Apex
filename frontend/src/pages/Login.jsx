@@ -63,8 +63,8 @@ function Login() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md bg-white shadow-md rounded-lg p-6"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">
-          Login to MAZIWA
+        <h2 className="text-2xl font-bold mb-6 text-center text-black-600">
+          Log in
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -104,7 +104,7 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+            className="w-full px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -114,7 +114,7 @@ function Login() {
         <div className="text-center mt-4">
           <p className="text-sm">
             Don't have an account?{" "}
-            <Link to="/register" className="text-blue-600 hover:underline">
+            <Link to="/register" className="text-blue-400 hover:underline">
               Register
             </Link>
           </p>

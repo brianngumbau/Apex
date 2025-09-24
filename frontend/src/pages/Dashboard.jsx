@@ -172,13 +172,13 @@ function Dashboard() {
                     <div className="space-x-2">
                       <button
                         onClick={() => voteWithdrawal(w.id, "approve")}
-                        className="bg-green-600 text-white px-3 py-1 rounded"
+                        className="px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => voteWithdrawal(w.id, "reject")}
-                        className="bg-red-600 text-white px-3 py-1 rounded"
+                        className="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
                       >
                         Reject
                       </button>

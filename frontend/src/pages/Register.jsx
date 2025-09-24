@@ -50,7 +50,7 @@ function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
         {/* Heading */}
-        <h2 className="text-3xl font-bold text-center text-blue-600">Create an Account</h2>
+        <h2 className="text-3xl font-bold text-center text-black-600">Create an Account</h2>
         <p className="text-gray-500 text-center mt-2 text-sm">
           Join us and manage your contributions easily.
         </p>
@@ -141,7 +141,7 @@ function Register() {
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+            className="w-full px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition"
           >
             Register
           </button>
