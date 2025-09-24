@@ -16,6 +16,13 @@ from app.routes.notifications import notifications_bp
 from app.routes.loans import loan_bp
 from app.routes.admin import admin_bp
 from app.routes.user import user_bp
+import logging, sys
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
 app = Flask(__name__)
 CORS(app)

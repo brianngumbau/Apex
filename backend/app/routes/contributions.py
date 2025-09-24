@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification, Group
+from app.models import db, Contribution, Transaction, User, ContributionStatus, TransactionType, Notification, Group, TransactionReason
 import datetime
 import logging
 
@@ -18,7 +18,7 @@ def log_contribution(user_id, amount, receipt_number):
         if existing:
             logger.warning(f"Duplicate contribution attempt ignored for receipt {receipt_number}")
             return {"message": "Duplicate contribution ignored"}, 200
-            
+
         user = User.query.get(user_id)
         if not user:
             logger.warning(f"Contribution failed: User {user_id} not found.")
@@ -51,7 +51,7 @@ def log_contribution(user_id, amount, receipt_number):
             group_id=user.group_id,
             amount=amount,
             type=TransactionType.CREDIT,
-            reason="Contribution",
+            reason=TransactionReason.CONTRIBUTION,
             date=datetime.datetime.now(datetime.timezone.utc),
             reference=receipt_number
         )

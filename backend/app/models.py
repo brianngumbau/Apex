@@ -32,6 +32,12 @@ class LoanStatus(Enum):
     REPAID = "repaid"
     PARTIALLY_REPAID = "partially_repaid"
 
+class TransactionReason:
+    CONTRIBUTION = "contribution"
+    WITHDRAWAL = "withdrawal"
+    LOAN_DISBURSEMENT = "loan_disbursement"
+    LOAN_REPAYMENT = "loan_repayment"
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -58,7 +64,7 @@ class Contribution(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    date = db.Column(db.Date, nullable=False, default=datetime.date.today)
+    date = db.Column(db.DateTime, nullable=False, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     status = db.Column(db.Enum(ContributionStatus), default=ContributionStatus.MISSING, nullable=False)
 
     user = db.relationship('User', backref=db.backref('contributions', lazy=True, cascade="all, delete-orphan"))

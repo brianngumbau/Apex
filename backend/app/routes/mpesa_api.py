@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus
+from app.models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus, TransactionType, TransactionReason
 from app.utils.mpesa import initiate_stk_push, initiate_b2c_payment
 from app.routes.contributions import log_contribution
 from app.utils.helpers import format_phone_number
@@ -108,7 +108,7 @@ def mpesa_callback():
                 group_id=user.group_id,
                 amount=pay_amount,
                 type=TransactionType.CREDIT,   # Money flowing into group
-                reason="Loan Repayment",
+                reason=TransactionReason.LOAN_REPAYMENT,
                 reference=receipt_number,
                 date=datetime.datetime.now(datetime.timezone.utc)
             )

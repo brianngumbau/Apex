@@ -99,12 +99,13 @@ def get_admin_dashboard(group_id):
             "status": "met" if total_contributed >= required_so_far else "pending"
         })
 
-    pending_loans = Loan.query.filter_by(group_id=group.id, status=LoanStatus.PENDING).all()
+    pending_loans = Loan.query.filter_by(Loan.group_id==group.id, Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.PARTIALLY_REPAID])).all()
     loans_data = [{
         "loan_id": loan.id,
         "member_id": loan.user_id,
         "member_name": loan.borrower.name,
         "amount": loan.amount,
+        "outstanding": loan.outstanding,
         "date": loan.date.isoformat()
     } for loan in pending_loans]
 
@@ -146,41 +147,3 @@ def get_admin_dashboard(group_id):
     }
 
     return jsonify(response), 200
-
-
-# Approve Loan
-@admin_bp.route("/groups/<int:group_id>/loans/<int:loan_id>/approve", methods=["POST"])
-@jwt_required()
-def approve_loan(group_id, loan_id):
-    user_id = int(get_jwt_identity())
-    admin = User.query.get(user_id)
-    group = Group.query.get(group_id)
-
-    print("Admin user_id:", user_id)
-    print("Admin.is_admin:", admin.is_admin)
-    print("Group admin_id:", group.admin_id)
-
-
-    if not admin or not admin.is_admin or not group or group.admin_id != user_id:
-        return jsonify({"error": "Unauthorized"}), 403
-
-    loan = Loan.query.get(loan_id)
-    if not loan or loan.group_id != group.id or loan.status != LoanStatus.PENDING:
-        return jsonify({"error": "Loan not found or already processed"}), 404
-
-    # approve
-    loan.status = LoanStatus.APPROVED
-    loan.approved_by = admin.id
-    db.session.commit()
-
-    notif = Notification(
-        user_id=loan.user_id,
-        group_id=group.id,
-        message=f"Your loan of Ksh {loan.amount} has been approved by {admin.name}",
-        type="Loan approval",
-        date=datetime.datetime.now(datetime.timezone.utc)
-    )
-    db.session.add(notif)
-    db.session.commit()
-
-    return jsonify({"message": f"Loan {loan.id} approved"}), 200

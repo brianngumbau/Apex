@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import db, User, Loan, Transaction, TransactionType, Notification, LoanStatus
+from app.models import db, User, Loan, Transaction, TransactionType, Notification, LoanStatus, TransactionReason, WithdrawalRequest, WithdrawalStatus
 from app.utils.mpesa import initiate_b2c_payment, initiate_stk_push
 import datetime
 import logging
@@ -32,14 +32,19 @@ def request_loan():
         .filter(Transaction.group_id == group_id,
                 Transaction.type == TransactionType.CREDIT).scalar() or 0.0
 
-    total_withdrawals = db.session.query(db.func.sum(Transaction.amount)) \
-        .filter(Transaction.group_id == group_id,
-                Transaction.type == TransactionType.DEBIT,
-                Transaction.reason == "Withdrawal").scalar() or 0.0
+    total_withdrawals = db.session.query(db.func.sum(Transaction.amount)).join(
+            WithdrawalRequest, WithdrawalRequest.transaction_id == Transaction.id
+        ).filter(
+            Transaction.group_id == group_id,
+            Transaction.type == TransactionType.DEBIT,
+            WithdrawalRequest.status.in_([WithdrawalStatus.COMPLETED, WithdrawalStatus.APPROVED])
+        ).scalar() or 0.0
+
 
     outstanding_loans = db.session.query(db.func.sum(Loan.outstanding)) \
         .filter(Loan.group_id == group_id,
                 Loan.status == LoanStatus.DISBURSED).scalar() or 0.0
+
 
     cash_at_hand = total_contributions - total_withdrawals - outstanding_loans
     available_company_limit = 0.4 * cash_at_hand
@@ -90,7 +95,7 @@ def request_loan():
             user_id=user.id,
             phone_number=user.phone,
             amount=loan.amount,
-            reason="Loan Disbursement",
+            reason=TransactionReason.LOAN_DISBURSEMENT,
             withdrawal_request_id=None
         )
     except Exception as e:
@@ -103,7 +108,7 @@ def request_loan():
         group_id=loan.group_id,
         amount=loan.amount,
         type=TransactionType.DEBIT,
-        reason="Loan Disbursed",
+        reason=TransactionReason.LOAN_DISBURSEMENT,
         date=datetime.datetime.now(datetime.timezone.utc)
     )
     db.session.add(tx)
