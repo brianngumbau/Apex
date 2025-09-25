@@ -137,30 +137,25 @@ function Profile() {
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6} className="flex items-center">
-                <Icon className="mr-3 text-gray-500">
-                  <Person />
-                </Icon>
+                <Person className="mr-3 text-gray-500" />
                 <Typography variant="body1">
                   <strong>Name:</strong> {user.name}
                 </Typography>
               </Grid>
               <Grid item xs={12} sm={6} className="flex items-center">
-                <Icon className="mr-3 text-gray-500">
-                  <Phone />
-                </Icon>
+                <Phone className="mr-3 text-gray-500" />
                 <Typography variant="body1">
                   <strong>Phone:</strong> {user.phone}
                 </Typography>
               </Grid>
               <Grid item xs={12} className="flex items-center">
-                <Icon className="mr-3 text-gray-500">
-                  <Email />
-                </Icon>
+                <Email className="mr-3 text-gray-500" />
                 <Typography variant="body1">
                   <strong>Email:</strong> {user.email || "Not available"}
                 </Typography>
               </Grid>
-            </Grid>
+          </Grid>
+
           </CardContent>
         </Paper>
       </Box>

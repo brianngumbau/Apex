@@ -16,7 +16,7 @@ import TransactionsPage from "./pages/TransactionsPage";
 import FinanceUtilities from "./pages/FinanceUtilites";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminRoute from "./routes/AdminRoute";
-
+import Settings from "./pages/Settings";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 // Import Theme Context Provider
@@ -113,6 +113,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
           <Route
             path="/admin-dashboard"
             element={

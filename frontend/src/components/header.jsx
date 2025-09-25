@@ -12,6 +12,8 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import LoginIcon from "@mui/icons-material/Login";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import SettingsIcon from "@mui/icons-material/Settings";
+
 import { useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
@@ -143,6 +145,12 @@ export default function ProminentAppBar() {
                 Admin Dashboard
               </MenuItem>
             )}
+
+            <MenuItem onClick={() => handleNavigation("/settings")}>
+              <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
+              Settings
+            </MenuItem>
+
 
             <MenuItem onClick={handleLoginLogout}>
               {isLoggedIn ? (
