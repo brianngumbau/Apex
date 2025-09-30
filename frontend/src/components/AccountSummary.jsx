@@ -7,18 +7,19 @@ import {
   MonetizationOn,
   CalendarToday,
   AccountBalance,
+  ExpandMore,
 } from "@mui/icons-material";
 
 function AccountSummary() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLoans, setShowLoans] = useState(false);
 
   const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch account summary
         const summaryRes = await axios.get(
           `${import.meta.env.VITE_API_BASE_URL}/user/account_summary`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -106,14 +107,56 @@ function AccountSummary() {
         </div>
 
         {/* Outstanding Loan */}
-        <div className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
-          <MonetizationOn className="text-red-500" />
-          <div>
-            <p className="text-sm text-gray-500">Outstanding Loan</p>
-            <p className="text-lg font-semibold text-gray-800">
-              KES {summary.outstanding_loan?.toFixed(2)}
-            </p>
+        <div
+          className="flex flex-col gap-2 p-4 border rounded-lg bg-gray-50 cursor-pointer"
+          onClick={() => setShowLoans(!showLoans)}
+        >
+          <div className="flex items-center gap-3">
+            <MonetizationOn className="text-red-500" />
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">Outstanding Loan</p>
+              <p className="text-lg font-semibold text-gray-800">
+                KES {summary.outstanding_loan?.toFixed(2)}
+              </p>
+            </div>
+            <ExpandMore
+              className={`transition-transform ${
+                showLoans ? "rotate-180" : ""
+              }`}
+            />
           </div>
+
+          {/* Loan details (expandable) */}
+          {showLoans && summary.loans && summary.loans.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {summary.loans.map((loan) => (
+                <div
+                  key={loan.loan_id}
+                  className="p-3 border rounded-md bg-white shadow-sm"
+                >
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Principal:</span> KES{" "}
+                    {loan.principal.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Outstanding:</span> KES{" "}
+                    {loan.outstanding.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Interest Rate:</span>{" "}
+                    {loan.interest_rate}% ({loan.interest_frequency})
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-semibold">Status:</span>{" "}
+                    {loan.status}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Disbursed on {new Date(loan.date_disbursed).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Loan Limit */}
@@ -141,7 +184,7 @@ function AccountSummary() {
           </div>
         </div>
 
-        {/* Total Group Contributions (All Time) */}
+        {/* Total Group Contributions */}
         <div className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
           <People className="text-orange-500" />
           <div>
@@ -152,7 +195,7 @@ function AccountSummary() {
           </div>
         </div>
 
-        {/* Current Balance (Adjusted Group Funds) */}
+        {/* Current Balance */}
         <div className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
           <AccountBalance className="text-green-700" />
           <div>

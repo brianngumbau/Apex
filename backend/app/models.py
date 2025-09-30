@@ -38,6 +38,13 @@ class TransactionReason:
     LOAN_DISBURSEMENT = "loan_disbursement"
     LOAN_REPAYMENT = "loan_repayment"
 
+
+class InterestFrequency(Enum):
+    DAILY = "daily"
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -55,6 +62,8 @@ class Group(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     daily_contribution_amount = db.Column(db.Float, default=0.0, nullable=False)
     join_code = db.Column(db.String(10), unique=True, nullable=False, default=lambda: secrets.token_hex(3).upper())
+    loan_interest_rate = db.Column(db.Float, default=0.0, nullable=False)
+    loan_interest_frequency = db.Column(db.Enum(InterestFrequency), default=InterestFrequency.MONTHLY, nullable=False)
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
     members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan", foreign_keys=[User.group_id])
@@ -140,7 +149,6 @@ class GroupJoinRequest(db.Model):
     group = db.relationship("Group", backref="join_requests")
 
 
-
 class Loan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -151,10 +159,35 @@ class Loan(db.Model):
     date = db.Column(db.DateTime, default=datetime.datetime.now(datetime.timezone.utc), nullable=False)
     disbursed_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=True)
 
+    interest_rate = db.Column(db.Float, nullable=False, default=0.0)
+    interest_frequency = db.Column(db.Enum(InterestFrequency), nullable=False, default=InterestFrequency.MONTHLY)
+
     borrower = db.relationship('User', foreign_keys=[user_id], backref=db.backref('loans_borrowed', lazy=True))
     group = db.relationship('Group', backref=db.backref('loans', lazy=True))
 
+    # Helper method to compute accrued amount
+    def calculate_due_amount(self, as_of_date=None):
+        if not as_of_date:
+            as_of_date = datetime.datetime.now(datetime.timezone.utc)
 
+        elapsed = (as_of_date - self.date).days
+        rate = self.interest_rate
+
+        if self.interest_frequency == InterestFrequency.DAILY:
+            periods = elapsed
+        elif self.interest_frequency == InterestFrequency.MONTHLY:
+            periods = elapsed // 30
+        elif self.interest_frequency == InterestFrequency.YEARLY:
+            periods = elapsed // 365
+        else:
+            periods = 0
+
+        return round(self.amount * ((1 + rate) ** periods), 2)
+    
+    def get_outstanding_balance(self, as_of_date=None):
+        total_due = self.calculate_due_amount(as_of_date)
+        repaid = (self.amount - self.outstanding)
+        return max(total_due - repaid, 0.0)
 
 class Announcement(db.Model):
     id = db.Column(db.Integer, primary_key=True)

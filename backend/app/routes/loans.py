@@ -76,6 +76,11 @@ def request_loan():
             "your_outstanding": user_outstanding_loans,
             "requested": amount
         }), 400
+    
+
+    group = user.group
+    interest_rate = group.loan_interest_rate or 0.0
+    interest_frequency = group.loan_interest_frequency or "monthly"
 
     # Create loan record (already disbursed)
     loan = Loan(
@@ -84,7 +89,9 @@ def request_loan():
         amount=amount,
         outstanding=amount,
         status=LoanStatus.DISBURSED,
-        date=datetime.datetime.now(datetime.timezone.utc)
+        date=datetime.datetime.now(datetime.timezone.utc),
+        interest_rate=interest_rate,
+        interest_frequency=interest_frequency
     )
     db.session.add(loan)
     db.session.commit()
@@ -157,3 +164,25 @@ def repay_loan():
 
     # Loan outstanding will be reduced in callback
     return jsonify({"message": "Repayment STK push initiated", "stk_response": response}), 200
+
+
+@loan_bp.route('/loans/my', methods=['GET'])
+@jwt_required()
+def my_loans():
+    user_id = get_jwt_identity()
+    loans = Loan.query.filter_by(user_id=user_id).all()
+
+    loan_data = []
+    for loan in loans:
+        accrued = loan.compute_accrued_amount()
+        loan_data.append({
+            "loan_id": loan.id,
+            "principal": loan.amount,
+            "interest_rate": loan.interest_rate,
+            "interest_frequency": loan.interest_frequency,
+            "disbursed_on": loan.date,
+            "outstanding": loan.outstanding,  # raw stored value
+            "accrued_balance": accrued        # includes compound interest
+        })
+
+    return jsonify({"loans": loan_data}), 200

@@ -25,13 +25,26 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
-CORS(app)
+CORS(
+    app,
+    resources={r"/*": {
+        "origins": ["http://localhost:5173", "https://dapper-sundae-a9aff0.netlify.app/"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+    }},
+)
+
 app.config.from_object(get_config())
 
 # Initialize extensions
 db.init_app(app)
 jwt.init_app(app)
-socketio.init_app(app, cors_allowed_origins="*")
+socketio.init_app(app, cors_allowed_origins=[
+    "http://localhost:5173",
+    "https://dapper-sundae-a9aff0.netlify.app/"
+])
+
 
 # Register blueprints
 app.register_blueprint(auth_bp)

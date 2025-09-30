@@ -30,7 +30,7 @@ def account_summary():
         if not group:
             logger.debug("Group not found")
             return jsonify({"error": "Group not found"}), 404
-        
+
         now = datetime.datetime.now(datetime.timezone.utc)
         first_day = datetime.datetime(now.year, now.month, 1, tzinfo=datetime.timezone.utc)
 
@@ -62,12 +62,26 @@ def account_summary():
         required_so_far = daily_amount * now.day
         pending_amount = max(0, required_so_far - monthly_contributed)
 
-        # --- Outstanding loan (user-specific) ---
-        outstanding_loan = db.session.query(db.func.sum(Loan.outstanding)).filter(
+        # --- Outstanding loan (user-specific, with compound interest) ---
+        outstanding_loan = 0.0
+        loans_data = []
+        for loan in Loan.query.filter(
             Loan.user_id == user.id,
             Loan.group_id == group.id,
             Loan.status == LoanStatus.DISBURSED
-            ).scalar() or 0.0
+        ).all():
+            balance = loan.get_outstanding_balance(as_of_date=now)
+            outstanding_loan += balance
+
+            loans_data.append({
+                "loan_id": loan.id,
+                "principal": loan.amount,
+                "interest_rate": loan.interest_rate,
+                "interest_frequency": loan.interest_frequency.value,
+                "outstanding": round(balance, 2),
+                "status": loan.status.value,
+                "date_disbursed": loan.date.isoformat()
+            })
 
         # --- Withdrawals made by admin (join WithdrawalRequest) ---
         total_withdrawals = db.session.query(db.func.sum(Transaction.amount)).join(
@@ -99,8 +113,6 @@ def account_summary():
             + (total_loans_repaid or 0.0)
         )
 
-
-
         logger.debug(f"Adjusted group funds: {adjusted_group_funds}")
 
         # --- Loan limit ---
@@ -119,7 +131,8 @@ def account_summary():
             "monthly_contributed": float(monthly_contributed),
             "required_so_far": float(required_so_far),
             "pending_amount": float(pending_amount),
-            "outstanding_loan": float(outstanding_loan),
+            "outstanding_loan": round(outstanding_loan, 2),  # compounded
+            "loans": loans_data,  # per-loan breakdown
             "group_total_contributions": float(group_total_contributions),
             "group_monthly_contributions": float(group_monthly_contributions),
             "adjusted_group_funds": float(adjusted_group_funds),

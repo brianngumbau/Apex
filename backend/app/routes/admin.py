@@ -99,14 +99,14 @@ def get_admin_dashboard(group_id):
             "status": "met" if total_contributed >= required_so_far else "pending"
         })
 
-    pending_loans = Loan.query.filter_by(Loan.group_id==group.id, Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.PARTIALLY_REPAID])).all()
+    pending_loans = Loan.query.filter(Loan.group_id==group.id, Loan.status.in_([LoanStatus.DISBURSED, LoanStatus.PARTIALLY_REPAID])).all()
     loans_data = [{
         "loan_id": loan.id,
         "member_id": loan.user_id,
         "member_name": loan.borrower.name,
         "amount": loan.amount,
         "outstanding": loan.outstanding,
-        "date": loan.date.isoformat()
+        "date": loan.date.isoformat() if loan.date else None
     } for loan in pending_loans]
 
     pending_withdrawals = WithdrawalRequest.query.filter_by(group_id=group.id, status=WithdrawalStatus.PENDING).all()
@@ -140,6 +140,8 @@ def get_admin_dashboard(group_id):
         "daily_contribution_amount": daily_amount,
         "required_so_far": required_so_far,
         "month": now.strftime("%B %Y"),
+        "loan_interest_rate": group.loan_interest_rate,
+        "loan_interest_frequency": group.loan_interest_frequency.value if group.loan_interest_frequency else None,
         "members": members_data,
         "pending_loans": loans_data,
         "pending_withdrawals": withdrawals_data,
@@ -147,3 +149,59 @@ def get_admin_dashboard(group_id):
     }
 
     return jsonify(response), 200
+
+
+# Set/Update Loan Policy (interest rate + frequency)
+@admin_bp.route("/groups/<int:group_id>/loan_policy", methods=["PUT"])
+@jwt_required()
+def update_group_loan_policy(group_id):
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user or not user.is_admin:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    group = Group.query.get(group_id)
+    if not group:
+        return jsonify({"error": "Group not found"}), 404
+
+    if group.admin_id != user.id:
+        return jsonify({"error": "Only the group admin can set this"}), 403
+
+    data = request.get_json() or {}
+    rate = data.get("loan_interest_rate")
+    frequency = data.get("loan_interest_frequency")
+
+    if rate is None or float(rate) < 0:
+        return jsonify({"error": "Invalid interest rate"}), 400
+
+    try:
+        from app.models import InterestFrequency
+        group.loan_interest_rate = float(rate)
+        group.loan_interest_frequency = InterestFrequency(frequency)
+    except ValueError:
+        return jsonify({"error": "Invalid frequency"}), 400
+
+    db.session.commit()
+
+    # Notify members
+    members = group.members
+    for member in members:
+        if member.id == user.id:
+            continue
+        notif = Notification(
+            user_id=member.id,
+            group_id=group.id,
+            message=f"The loan policy has been updated: {rate*100:.2f}% {frequency.lower()} by {user.name}",
+            type="Loan Policy Update",
+            date=datetime.datetime.now(datetime.timezone.utc)
+        )
+        db.session.add(notif)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Loan policy updated successfully",
+        "loan_interest_rate": group.loan_interest_rate,
+        "loan_interest_frequency": group.loan_interest_frequency.value
+    }), 200

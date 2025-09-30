@@ -1,6 +1,9 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.models import User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification, Loan, LoanStatus, TransactionType, TransactionReason
+from app.models import (
+    User, WithdrawalRequest, WithdrawalStatus, Transaction, db, Notification,
+    Loan, LoanStatus, TransactionType, TransactionReason
+)
 from app.utils.mpesa import initiate_stk_push, initiate_b2c_payment
 from app.routes.contributions import log_contribution
 from app.utils.helpers import format_phone_number
@@ -42,7 +45,10 @@ def stk_push():
         return jsonify({"error": "STK push failed", "details": str(e)}), 500
 
     if response.get("ResponseCode") == "0":
-        logger.info(f"STK push initiated successfully for user {user_id}, CheckoutRequestID: {response.get('CheckoutRequestID')}")
+        logger.info(
+            f"STK push initiated successfully for user {user_id}, "
+            f"CheckoutRequestID: {response.get('CheckoutRequestID')}"
+        )
         return jsonify({
             "message": "STK push initiated successfully",
             "checkout_request_id": response.get("CheckoutRequestID")
@@ -54,6 +60,9 @@ def stk_push():
 
 @mpesa_bp.route("/callback/transaction", methods=["POST"])
 def mpesa_callback():
+    """
+    Handles M-Pesa STK push callback for contributions and loan repayments.
+    """
     data = request.get_json()
 
     try:
@@ -93,36 +102,44 @@ def mpesa_callback():
         ).first()
 
         if active_loan:
-            # Deduct from outstanding
-            active_loan.outstanding -= pay_amount
+            as_of_date = datetime.datetime.now(datetime.timezone.utc)
+            total_due = active_loan.calculate_due_amount(as_of_date)
 
-            if active_loan.outstanding <= 0:
+            already_repaid = active_loan.amount - active_loan.outstanding
+            remaining_balance = max(total_due - already_repaid, 0.0)
+
+            new_remaining_balance = max(remaining_balance - pay_amount, 0.0)
+
+            active_loan.outstanding = new_remaining_balance
+
+            if new_remaining_balance <= 0:
                 active_loan.status = LoanStatus.REPAID
                 active_loan.outstanding = 0
             else:
                 active_loan.status = LoanStatus.PARTIALLY_REPAID
 
-            # Log repayment transaction
             repayment_tx = Transaction(
                 user_id=user.id,
                 group_id=user.group_id,
                 amount=pay_amount,
-                type=TransactionType.CREDIT,   # Money flowing into group
+                type=TransactionType.CREDIT,   # money into group
                 reason=TransactionReason.LOAN_REPAYMENT,
                 reference=receipt_number,
-                date=datetime.datetime.now(datetime.timezone.utc)
+                date=as_of_date
             )
             db.session.add(repayment_tx)
 
-            # Send notification
             notif = Notification(
                 user_id=user.id,
-                message=f"Loan repayment of KES {pay_amount:.2f} received. Outstanding balance: KES {active_loan.outstanding:.2f}"
+                message=(
+                    f"Loan repayment of KES {pay_amount:.2f} received. "
+                    f"Outstanding balance: KES {active_loan.outstanding:.2f}"
+                )
             )
             db.session.add(notif)
 
         else:
-            # Treat as a normal contribution
+            # Treat as normal contribution
             log_contribution(user.id, pay_amount, receipt_number)
 
             notif = Notification(
@@ -149,7 +166,10 @@ def process_withdrawal():
     withdrawal_request_id = data.get("withdrawal_id")
     transaction_id = data.get("transaction_id")
 
-    withdrawal = WithdrawalRequest.query.filter_by(transaction_id=transaction_id, status=WithdrawalStatus.APPROVED).first()
+    withdrawal = WithdrawalRequest.query.filter_by(
+        transaction_id=transaction_id,
+        status=WithdrawalStatus.APPROVED
+    ).first()
     if not withdrawal:
         return jsonify({"error": "No approved withdrawal found"}), 400
 
@@ -180,7 +200,9 @@ def process_withdrawal():
 
         withdrawal.mpesa_transaction_id = originator_id
         db.session.commit()
-        logger.info(f"Withdrawal {withdrawal.id} updated with M-Pesa transaction ID {originator_id}")
+        logger.info(
+            f"Withdrawal {withdrawal.id} updated with M-Pesa transaction ID {originator_id}"
+        )
 
     except Exception as e:
         logger.error(f"B2C payment failed: {e}")
@@ -207,7 +229,9 @@ def b2c_callback():
         logger.error("Missing mpesa_transaction_id in callback")
         return jsonify({"error": "Invalid callback data"}), 400
 
-    withdrawal = WithdrawalRequest.query.filter_by(mpesa_transaction_id=mpesa_transaction_id).first()
+    withdrawal = WithdrawalRequest.query.filter_by(
+        mpesa_transaction_id=mpesa_transaction_id
+    ).first()
     if not withdrawal:
         logger.warning(f"Withdrawal with transaction ID {mpesa_transaction_id} not found")
         return jsonify({"error": "Transaction not found"}), 400
@@ -220,7 +244,9 @@ def b2c_callback():
                 notification = Notification(
                     user_id=member.id,
                     group_id=withdrawal.group_id,
-                    message=f"Withdrawal of Ksh {withdrawal.amount} via M-Pesa completed successfully",
+                    message=(
+                        f"Withdrawal of Ksh {withdrawal.amount} via M-Pesa completed successfully"
+                    ),
                     type="Withdrawal",
                     date=datetime.datetime.now(datetime.timezone.utc)
                 )
