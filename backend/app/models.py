@@ -40,9 +40,9 @@ class TransactionReason:
 
 
 class InterestFrequency(Enum):
-    DAILY = "daily"
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
+    DAILY = "DAILY"
+    MONTHLY = "MONTHLY"
+    YEARLY = "YEARLY"
 
 
 class User(db.Model):
@@ -63,7 +63,8 @@ class Group(db.Model):
     daily_contribution_amount = db.Column(db.Float, default=0.0, nullable=False)
     join_code = db.Column(db.String(10), unique=True, nullable=False, default=lambda: secrets.token_hex(3).upper())
     loan_interest_rate = db.Column(db.Float, default=0.0, nullable=False)
-    loan_interest_frequency = db.Column(db.Enum(InterestFrequency), default=InterestFrequency.MONTHLY, nullable=False)
+    loan_interest_frequency = db.Column(db.Enum(InterestFrequency, name="interestfrequency"), nullable=False, default=InterestFrequency.MONTHLY)
+
     
     admin = db.relationship('User', backref='admin_of_group', foreign_keys=[admin_id])
     members = db.relationship('User', backref='group', lazy=True, cascade="all, delete-orphan", foreign_keys=[User.group_id])
@@ -160,7 +161,8 @@ class Loan(db.Model):
     disbursed_transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'), nullable=True)
 
     interest_rate = db.Column(db.Float, nullable=False, default=0.0)
-    interest_frequency = db.Column(db.Enum(InterestFrequency), nullable=False, default=InterestFrequency.MONTHLY)
+    interest_frequency = db.Column(db.Enum(InterestFrequency, name="interestfrequency"), nullable=False, default=InterestFrequency.MONTHLY)
+
 
     borrower = db.relationship('User', foreign_keys=[user_id], backref=db.backref('loans_borrowed', lazy=True))
     group = db.relationship('Group', backref=db.backref('loans', lazy=True))

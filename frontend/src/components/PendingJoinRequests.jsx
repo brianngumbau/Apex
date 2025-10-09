@@ -1,38 +1,37 @@
 import React from "react";
 
-const PendingJoinRequests = ({ requests, onApprove, onReject }) => (
-  <div className="bg-white rounded-2xl shadow-md p-6">
-    <h2 className="text-xl font-semibold mb-4">Pending Join Requests</h2>
-    {requests?.length ? (
-      requests.map((req) => (
-        <div
-          key={req.id}
-          className="p-4 border rounded flex justify-between items-center mb-2"
-        >
-          <p>
-            {req.user_name} requested to join on{" "}
-            {new Date(req.date).toLocaleDateString()}
-          </p>
-          <div className="space-x-2">
-            <button
-              onClick={() => onApprove(req.id)}
-              className="bg-green-600 text-white px-4 py-2 rounded shadow"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => onReject(req.id)}
-              className="bg-red-600 text-white px-4 py-2 rounded shadow"
-            >
-              Reject
-            </button>
-          </div>
-        </div>
-      ))
-    ) : (
-      <p>No join requests</p>
-    )}
-  </div>
-);
+const PendingJoinRequests = ({ requests, onApprove, onReject }) => {
+  if (!requests?.length) return null;
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h2 className="text-lg font-semibold mb-4">Pending Join Requests</h2>
+      <ul className="space-y-2">
+        {requests.map((r) => (
+          <li
+            key={r.id}
+            className="p-3 border rounded flex justify-between items-center"
+          >
+            <span>{r.name} ({r.email})</span>
+            <div className="space-x-2">
+              <button
+                onClick={() => onApprove(r.id)}
+                className="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => onReject(r.id)}
+                className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+              >
+                Reject
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 export default PendingJoinRequests;

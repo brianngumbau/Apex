@@ -1,38 +1,32 @@
 import React from "react";
 
-const PendingWithdrawalsList = ({ withdrawals, onCancel }) => (
-  <div className="bg-white rounded-2xl shadow-md p-6">
-    <h2 className="text-xl font-semibold mb-4">Pending Withdrawals</h2>
-    {withdrawals.length ? (
-      withdrawals.map((w) => (
-        <div
-          key={w.id}
-          className="p-4 border rounded mb-2 bg-gray-50 flex justify-between items-center"
-        >
-          <div>
-            <p>
-              Request of Ksh {w.amount} by {w.requested_by || "Admin"} for{" "}
-              {w.reason} on {new Date(w.date).toLocaleDateString()}
-            </p>
-            <p>
-              Status: {w.status} | Approvals: {w.approvals} | Rejections:{" "}
-              {w.rejections}
-            </p>
-          </div>
-          {w.status === "pending" && (
+const PendingWithdrawalsList = ({ withdrawals, onCancel }) => {
+  if (!withdrawals?.length) return null;
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h2 className="text-lg font-semibold mb-4">Pending Withdrawals</h2>
+      <ul className="space-y-2">
+        {withdrawals.map((w) => (
+          <li
+            key={w.id}
+            className="p-3 border rounded flex justify-between items-center"
+          >
+            <div>
+              <p>Amount: {w.amount}</p>
+              <p className="text-sm text-gray-600">{w.reason}</p>
+            </div>
             <button
               onClick={() => onCancel(w.id)}
-              className="bg-red-600 text-white px-4 py-2 rounded shadow ml-4"
+              className="text-red-500 hover:underline"
             >
               Cancel
             </button>
-          )}
-        </div>
-      ))
-    ) : (
-      <p>No pending withdrawals</p>
-    )}
-  </div>
-);
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 export default PendingWithdrawalsList;

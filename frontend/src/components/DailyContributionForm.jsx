@@ -2,19 +2,15 @@ import React from "react";
 
 const DailyContributionForm = ({ dailyAmount, setDailyAmount, onUpdate }) => {
   return (
-    <form
-      onSubmit={onUpdate}
-      className="bg-white p-4 rounded-lg shadow space-y-3"
-    >
-      <h2 className="text-lg font-semibold">Daily Contribution</h2>
-      <div className="flex items-center space-x-3">
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h2 className="text-lg font-semibold mb-4">Daily Contribution Amount</h2>
+      <form onSubmit={onUpdate} className="flex space-x-2">
         <input
           type="number"
           value={dailyAmount}
           onChange={(e) => setDailyAmount(e.target.value)}
-          className="flex-1 p-2 border rounded"
-          placeholder="Enter daily amount"
-          required
+          className="p-2 border rounded flex-1"
+          placeholder="Enter amount"
         />
         <button
           type="submit"
@@ -22,8 +18,8 @@ const DailyContributionForm = ({ dailyAmount, setDailyAmount, onUpdate }) => {
         >
           Update
         </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 };
 

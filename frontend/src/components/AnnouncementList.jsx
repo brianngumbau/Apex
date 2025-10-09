@@ -1,35 +1,32 @@
 import React from "react";
 
-const AnnouncementList = ({ announcements, onDelete }) => (
-  <div className="mt-6">
-    <h3 className="text-lg font-semibold mb-2">Recent Announcements</h3>
-    {announcements.length ? (
-      <ul className="space-y-3">
+const AnnouncementList = ({ announcements, onDelete }) => {
+  if (!announcements?.length) return null;
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow">
+      <h2 className="text-lg font-semibold mb-4">Announcements</h2>
+      <ul className="space-y-2">
         {announcements.map((a) => (
           <li
             key={a.id}
-            className="p-4 border rounded bg-gray-50 shadow-sm flex justify-between items-start"
+            className="p-3 border rounded flex justify-between items-center"
           >
             <div>
-              <h4 className="font-semibold">{a.title || "No Title"}</h4>
-              <p className="text-gray-700">{a.message}</p>
-              <span className="text-xs text-gray-500">
-                {new Date(a.created_at).toLocaleString()}
-              </span>
+              <p className="font-semibold">{a.title}</p>
+              <p className="text-gray-600">{a.message}</p>
             </div>
             <button
               onClick={() => onDelete(a.id)}
-              className="bg-red-600 text-white px-3 py-1 rounded shadow ml-4"
+              className="text-red-500 hover:underline"
             >
               Delete
             </button>
           </li>
         ))}
       </ul>
-    ) : (
-      <p className="text-gray-500">No announcements yet.</p>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 export default AnnouncementList;
