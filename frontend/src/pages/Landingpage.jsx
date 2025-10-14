@@ -1,13 +1,10 @@
 import React from "react";
-import LandingPageAppBar from "../components/LandingPageHeader"; // no longer used
-import { Link } from "react-router-dom"; // ✅ Fixed import
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
 function Landingpage() {
   return (
     <>
-      
-
       <main className="flex flex-col items-center px-4 py-6 space-y-14 bg-gray-100 text-center pb-20">
 
         {/* Hero Section */}
@@ -37,6 +34,9 @@ function Landingpage() {
               Register
             </Link>
           </div>
+          <p className="text-xs text-gray-500 mt-2">
+            *Note: Make sure your account is verified via email to log in.
+          </p>
         </motion.section>
 
         {/* Why Choose Us */}
@@ -106,7 +106,7 @@ function Landingpage() {
 
         {/* Footer */}
         <footer className="text-center text-sm text-gray-600 pt-6 border-t w-full">
-          <p>📧 concretejungle@gmail.com</p>
+          <p>📧 maziwa470@gmail.com</p>
           <p>📞 0117155550</p>
 
           <div className="flex justify-center gap-6 mt-4 text-xs text-gray-500">

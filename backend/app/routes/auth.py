@@ -5,9 +5,10 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from datetime import timedelta
 from app.models import db, User, TokenBlacklist, Group
 from app.utils.jwt_handler import decode_jwt
-from app.utils.helpers import format_phone_number
+from app.utils.helpers import format_phone_number, generate_token, confirm_token, send_email
 import os
 import uuid
+import re
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -18,10 +19,10 @@ UPLOAD_FOLDER = os.path.join("uploads", "profile_photos")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
+EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 # ----------------------------
 # Register
@@ -33,6 +34,10 @@ def register():
     required_fields = ["name", "email", "phone", "password"]
     if not data or not all(field in data for field in required_fields):
         return jsonify({"error": "Missing required fields"}), 400
+
+    # Validate email format
+    if not re.match(EMAIL_REGEX, data["email"]):
+        return jsonify({"error": "Invalid email format"}), 400
 
     formatted_phone = format_phone_number(data["phone"])
     if not formatted_phone:
@@ -48,16 +53,47 @@ def register():
         phone=formatted_phone,
         password=hashed_password,
         is_admin=False,
-        group_id=None
+        group_id=None,
+        is_verified=False  # new field
     )
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"message": "User registered successfully. Please log in and join or create a group."}), 201
+    # Generate email verification token
+    token = generate_token(new_user.email)
+    verification_url = url_for("auth.verify_email", token=token, _external=True)
+    html_body = f"""
+    <p>Hi {new_user.name},</p>
+    <p>Thanks for registering! Please verify your email by clicking the link below:</p>
+    <p><a href="{verification_url}">Verify Email</a></p>
+    <p>This link expires in 1 hour.</p>
+    """
+    send_email("Verify Your Email", new_user.email, html_body)
 
+    return jsonify({"message": "User registered successfully. Please check your email to verify your account."}), 201
 
 # ----------------------------
-# Login (returns access_token + user info)
+# Verify Email
+# ----------------------------
+@auth_bp.route("/verify/<token>", methods=["GET"])
+def verify_email(token):
+    email = confirm_token(token)
+    if not email:
+        return jsonify({"error": "Invalid or expired token"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user.is_verified:
+        return jsonify({"message": "Email already verified"}), 200
+
+    user.is_verified = True
+    db.session.commit()
+    return jsonify({"message": "Email verified successfully!"}), 200
+
+# ----------------------------
+# Login
 # ----------------------------
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -70,17 +106,17 @@ def login():
         if not user or not check_password_hash(user.password, data["password"]):
             return jsonify({"error": "Invalid credentials"}), 401
 
-        # Create token (keep any additional_claims if you used them before)
+        if not user.is_verified:
+            return jsonify({"error": "Please verify your email before logging in."}), 403
+
         access_token = create_access_token(identity=user.id, additional_claims={"sub": str(user.id)})
 
-        # fetch group name if exists
         group_name = None
         if user.group_id:
             group = Group.query.get(user.group_id)
             if group:
                 group_name = group.name
 
-        # full profile_photo URL if set
         profile_photo_url = None
         if user.profile_photo:
             profile_photo_url = url_for("auth.get_profile_photo", filename=user.profile_photo, _external=True)
@@ -96,7 +132,8 @@ def login():
                 "group_id": user.group_id,
                 "group_name": group_name,
                 "monthly_total": user.monthly_total,
-                "profile_photo": profile_photo_url
+                "profile_photo": profile_photo_url,
+                "is_verified": user.is_verified
             }
         }
 
@@ -109,9 +146,8 @@ def login():
         print("Error in /login:", e)
         return jsonify({"error": "Internal server error"}), 500
 
-
 # ----------------------------
-# Logout (blacklist token)
+# Logout
 # ----------------------------
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
@@ -131,6 +167,52 @@ def logout():
 
     return jsonify({"message": "Logged out successfully"}), 200
 
+# ----------------------------
+# Request Password Reset
+# ----------------------------
+@auth_bp.route("/request-reset", methods=["POST"])
+def request_password_reset():
+    data = request.get_json()
+    email = data.get("email")
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    token = generate_token(user.email)
+    reset_url = url_for("auth.reset_password", token=token, _external=True)
+    html_body = f"""
+    <p>Hi {user.name},</p>
+    <p>Click the link below to reset your password:</p>
+    <p><a href="{reset_url}">Reset Password</a></p>
+    <p>This link expires in 1 hour.</p>
+    """
+    send_email("Password Reset Request", user.email, html_body)
+    return jsonify({"message": "Password reset email sent"}), 200
+
+# ----------------------------
+# Reset Password
+# ----------------------------
+@auth_bp.route("/reset-password/<token>", methods=["POST"])
+def reset_password(token):
+    email = confirm_token(token)
+    if not email:
+        return jsonify({"error": "Invalid or expired token"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    new_password = data.get("new_password")
+    if not new_password:
+        return jsonify({"error": "New password is required"}), 400
+
+    user.password = generate_password_hash(new_password)
+    db.session.commit()
+    return jsonify({"message": "Password reset successfully"}), 200
 
 # ----------------------------
 # Get Profile
@@ -166,9 +248,8 @@ def get_user_profile():
         "profile_photo": profile_photo_url
     }), 200
 
-
 # ----------------------------
-# Update Profile (PUT /user/profile)
+# Update Profile
 # ----------------------------
 @auth_bp.route("/user/profile", methods=["PUT"])
 @jwt_required()
@@ -193,7 +274,6 @@ def update_profile():
 
     db.session.commit()
 
-    # reply with updated user basic info and profile_photo URL
     profile_photo_url = None
     if current_user.profile_photo:
         profile_photo_url = url_for("auth.get_profile_photo", filename=current_user.profile_photo, _external=True)
@@ -208,7 +288,6 @@ def update_profile():
             "profile_photo": profile_photo_url
         }
     }), 200
-
 
 # ----------------------------
 # Upload Profile Photo
@@ -229,7 +308,6 @@ def upload_profile_photo():
         return jsonify({"error": "No selected file"}), 400
 
     if file and allowed_file(file.filename):
-        # preserve extension
         ext = file.filename.rsplit(".", 1)[1].lower()
         filename = secure_filename(f"{current_user.id}_{uuid.uuid4().hex}.{ext}")
         filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -243,12 +321,10 @@ def upload_profile_photo():
 
     return jsonify({"error": "Invalid file type"}), 400
 
-
 # Serve profile photos
 @auth_bp.route("/user/profile/photo/<filename>", methods=["GET"])
 def get_profile_photo(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
-
 
 # ----------------------------
 # Change Password

@@ -56,6 +56,8 @@ class User(db.Model):
     monthly_total = db.Column(db.Float, default=0.0)
     profile_photo = db.Column(db.String(255), nullable=True)
 
+    is_verified = db.Column(db.Boolean, default=False, nullable=False)
+
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)

@@ -17,25 +17,40 @@ function Login() {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await axios.post("https://maziwa-90gd.onrender.com/login", {
-        email: data.email,
-        password: data.password,
-      });
+      const response = await axios.post(
+        "https://maziwa-90gd.onrender.com/login",
+        {
+          email: data.email.trim(),
+          password: data.password,
+        }
+      );
 
       const { access_token, user } = response.data;
-      // Store token in localStorage
+
+      // check if user is verified
+      if (!user.is_verified) {
+        alert(
+          "⚠️ Your account is not verified. Please check your email for the verification link."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Store token and user info
       localStorage.setItem("token", access_token);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("is_admin", user.is_admin ? "true" : "false");
 
-      alert("Login successful!");
+      alert("✅ Login successful!");
 
       // redirect to dashboard/home
       navigate("/dashboard");
     } catch (error) {
       if (error.response) {
         console.error("Login error:", error.response.data);
-        alert(error.response.data.error || "Login failed");
+        const msg =
+          error.response.data.error || error.response.data.message || "Login failed";
+        alert(msg);
       } else {
         console.error("Error:", error.message);
         alert("An error occurred. Try again later.");
@@ -63,7 +78,7 @@ function Login() {
         transition={{ duration: 0.6 }}
         className="w-full max-w-md bg-white shadow-md rounded-lg p-6"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center text-black-600">
+        <h2 className="text-2xl font-bold mb-6 text-center text-black">
           Log in
         </h2>
 
@@ -78,9 +93,7 @@ function Login() {
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
             )}
           </div>
 
@@ -94,9 +107,7 @@ function Login() {
               className="w-full px-4 py-2 border rounded focus:outline-none focus:ring focus:ring-blue-200"
             />
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.password.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
             )}
           </div>
 

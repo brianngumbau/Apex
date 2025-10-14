@@ -16,24 +16,30 @@ function Register() {
     console.log("Registration Data:", data);
     try {
       const payload = {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
+        name: data.name.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
         password: data.password,
       };
 
-      const response = await axios.post("https://maziwa-90gd.onrender.com/register", payload);
+      const response = await axios.post(
+        "https://maziwa-90gd.onrender.com/register",
+        payload
+      );
+
       console.log("Registration successful:", response.data);
-      alert("Account created successfully! You can now log in.");
+
+      alert(
+        "✅ Account created successfully! A verification link has been sent to your email. Please verify before logging in."
+      );
       navigate("/login");
     } catch (error) {
       console.error("Full error object:", error);
       if (error.response) {
-        console.error("Registration error:", error.response.data);
-        alert(error.response.data.error || "Registration failed");
+        const msg = error.response.data.error || error.response.data.message;
+        alert(msg || "Registration failed. Try again.");
       } else {
-        console.error("Error:", error.message);
-        alert("An error occurred. Try again later.");
+        alert("An error occurred. Please try again later.");
       }
     }
   };
@@ -50,7 +56,9 @@ function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
         {/* Heading */}
-        <h2 className="text-3xl font-bold text-center text-black-600">Create an Account</h2>
+        <h2 className="text-3xl font-bold text-center text-black">
+          Create an Account
+        </h2>
         <p className="text-gray-500 text-center mt-2 text-sm">
           Join us and manage your contributions easily.
         </p>
@@ -59,29 +67,49 @@ function Register() {
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
           {/* Full Name */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Full Name</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Full Name
+            </label>
             <input
               type="text"
               {...register("name", { required: "Name is required" })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.name.message}
+              </p>
+            )}
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Email</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Email
+            </label>
             <input
               type="email"
-              {...register("email", { required: "Email is required" })}
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Enter a valid email address",
+                },
+              })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Phone Number</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Phone Number
+            </label>
             <input
               type="text"
               {...register("phone", {
@@ -90,27 +118,44 @@ function Register() {
                   value: /^254(7\d{8}|1\d{8})$/,
                   message: "Use format: 2547xxxxxxxx or 2541xxxxxxxx",
                 },
-
               })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>}
+            {errors.phone && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.phone.message}
+              </p>
+            )}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Password</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Password
+            </label>
             <input
               type="password"
-              {...register("password", { required: "Password is required" })}
+              {...register("password", {
+                required: "Password is required",
+                minLength: {
+                  value: 6,
+                  message: "Password must be at least 6 characters",
+                },
+              })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
-            {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">Confirm Password</label>
+            <label className="block text-gray-700 font-medium mb-1">
+              Confirm Password
+            </label>
             <input
               type="password"
               {...register("confirmPassword", {
@@ -120,7 +165,9 @@ function Register() {
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">{errors.confirmPassword.message}</p>
+              <p className="text-red-500 text-sm mt-1">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
@@ -133,15 +180,21 @@ function Register() {
             />
             <label className="text-sm text-gray-700">
               I agree to the{" "}
-              <span className="text-blue-600 hover:underline">Terms and Conditions</span>
+              <span className="text-blue-600 hover:underline">
+                Terms and Conditions
+              </span>
             </label>
           </div>
-          {errors.terms && <p className="text-red-500 text-sm mt-1">{errors.terms.message}</p>}
+          {errors.terms && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.terms.message}
+            </p>
+          )}
 
           {/* Register Button */}
           <button
             type="submit"
-            className="w-full px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition"
+            className="w-full px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             Register
           </button>
@@ -161,14 +214,22 @@ function Register() {
             className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
           >
             <img src="/google.logo.png" alt="Google" className="w-5 h-5 mr-2" />
-            <span className="text-gray-700 text-sm font-medium">Sign up with Google</span>
+            <span className="text-gray-700 text-sm font-medium">
+              Sign up with Google
+            </span>
           </button>
           <button
             onClick={handleFacebookSignup}
             className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
           >
-            <img src="/facebook.logo.png" alt="Facebook" className="w-5 h-5 mr-2" />
-            <span className="text-gray-700 text-sm font-medium">Sign up with Facebook</span>
+            <img
+              src="/facebook.logo.png"
+              alt="Facebook"
+              className="w-5 h-5 mr-2"
+            />
+            <span className="text-gray-700 text-sm font-medium">
+              Sign up with Facebook
+            </span>
           </button>
         </div>
 
