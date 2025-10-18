@@ -9,12 +9,14 @@ from app.utils.helpers import format_phone_number, generate_token, confirm_token
 import os
 import uuid
 import re
+from google.oauth2 import id_token
+from google.auth.transport import requests as grequests
+from app.utils.helpers import get_or_create_google_user
 
 auth_bp = Blueprint("auth", __name__)
 
-# ----------------------------
+
 # Config for uploads
-# ----------------------------
 UPLOAD_FOLDER = os.path.join("uploads", "profile_photos")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
@@ -24,9 +26,7 @@ EMAIL_REGEX = r"^[\w\.-]+@[\w\.-]+\.\w+$"
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ----------------------------
 # Register
-# ----------------------------
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -72,9 +72,8 @@ def register():
 
     return jsonify({"message": "User registered successfully. Please check your email to verify your account."}), 201
 
-# ----------------------------
-# Verify Email
-# ----------------------------
+
+# Verify email
 @auth_bp.route("/verify/<token>", methods=["GET"])
 def verify_email(token):
     email = confirm_token(token)
@@ -92,9 +91,7 @@ def verify_email(token):
     db.session.commit()
     return jsonify({"message": "Email verified successfully!"}), 200
 
-# ----------------------------
 # Login
-# ----------------------------
 @auth_bp.route("/login", methods=["POST"])
 def login():
     try:
@@ -145,10 +142,82 @@ def login():
     except Exception as e:
         print("Error in /login:", e)
         return jsonify({"error": "Internal server error"}), 500
+    
 
-# ----------------------------
+# Google Login/Register
+@auth_bp.route("/auth/google", methods=["POST"])
+def google_login():
+    try:
+        data = request.get_json()
+        token = data.get("id_token")
+
+        if not token:
+            return jsonify({"error": "Missing Google ID token"}), 400
+
+        # Verify token
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            grequests.Request(),
+            os.getenv("GOOGLE_CLIENT_ID")
+        )
+
+        # Extract user info
+        google_id = idinfo.get("sub")
+        name = idinfo.get("name")
+        email = idinfo.get("email")
+        avatar_url = idinfo.get("picture")
+
+        if not email or not google_id:
+            return jsonify({"error": "Invalid Google token"}), 400
+
+        # Create or get user
+        user = get_or_create_google_user(
+            google_id=google_id,
+            name=name,
+            email=email,
+            avatar_url=avatar_url
+        )
+
+        # Create JWT for app session
+        access_token = create_access_token(identity=user.id, additional_claims={"sub": str(user.id)})
+
+        group_name = None
+        if user.group_id:
+            group = Group.query.get(user.group_id)
+            if group:
+                group_name = group.name
+
+        profile_photo_url = None
+        if user.avatar_url:
+            profile_photo_url = user.avatar_url
+        elif user.profile_photo:
+            profile_photo_url = url_for("auth.get_profile_photo", filename=user.profile_photo, _external=True)
+
+        return jsonify({
+            "message": "Google login successful",
+            "access_token": access_token,
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "avatar_url": profile_photo_url,
+                "is_admin": user.is_admin,
+                "group_id": user.group_id,
+                "group_name": group_name,
+                "monthly_total": user.monthly_total,
+                "is_verified": user.is_verified
+            }
+        }), 200
+
+    except ValueError as e:
+        return jsonify({"error": f"Invalid token: {e}"}), 400
+    except Exception as e:
+        print("Error in /auth/google:", e)
+        return jsonify({"error": "Internal server error"}), 500
+
+
+
 # Logout
-# ----------------------------
 @auth_bp.route("/logout", methods=["POST"])
 def logout():
     auth_header = request.headers.get("Authorization")
@@ -167,9 +236,8 @@ def logout():
 
     return jsonify({"message": "Logged out successfully"}), 200
 
-# ----------------------------
+
 # Request Password Reset
-# ----------------------------
 @auth_bp.route("/request-reset", methods=["POST"])
 def request_password_reset():
     data = request.get_json()
@@ -192,9 +260,8 @@ def request_password_reset():
     send_email("Password Reset Request", user.email, html_body)
     return jsonify({"message": "Password reset email sent"}), 200
 
-# ----------------------------
+
 # Reset Password
-# ----------------------------
 @auth_bp.route("/reset-password/<token>", methods=["POST"])
 def reset_password(token):
     email = confirm_token(token)
@@ -214,9 +281,8 @@ def reset_password(token):
     db.session.commit()
     return jsonify({"message": "Password reset successfully"}), 200
 
-# ----------------------------
+
 # Get Profile
-# ----------------------------
 @auth_bp.route("/user/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
@@ -248,9 +314,8 @@ def get_user_profile():
         "profile_photo": profile_photo_url
     }), 200
 
-# ----------------------------
+
 # Update Profile
-# ----------------------------
 @auth_bp.route("/user/profile", methods=["PUT"])
 @jwt_required()
 def update_profile():
@@ -289,9 +354,8 @@ def update_profile():
         }
     }), 200
 
-# ----------------------------
+
 # Upload Profile Photo
-# ----------------------------
 @auth_bp.route("/user/profile/photo", methods=["POST"])
 @jwt_required()
 def upload_profile_photo():
@@ -326,9 +390,8 @@ def upload_profile_photo():
 def get_profile_photo(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
-# ----------------------------
+
 # Change Password
-# ----------------------------
 @auth_bp.route("/change_password", methods=["PUT"])
 @jwt_required()
 def change_password():

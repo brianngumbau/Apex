@@ -49,8 +49,12 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    phone = db.Column(db.String(15), unique=True, nullable=False, index=True)
-    password = db.Column(db.String(200), nullable=False)
+    phone = db.Column(db.String(15), unique=True, nullable=True, index=True)
+    password = db.Column(db.String(200), nullable=True)
+
+    google_id = db.Column(db.String(255), unique=True, nullable=True)
+    avatar_url = db.Column(db.String(500), nullable=True)
+      
     is_admin = db.Column(db.Boolean, default=False)
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     monthly_total = db.Column(db.Float, default=0.0)

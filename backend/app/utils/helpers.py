@@ -5,7 +5,7 @@ from flask import current_app
 from flask_mail import Message
 from app.extensions import mail
 from markupsafe import Markup
-
+from app.models import User, db
 
 def format_phone_number(phone: str) -> str | None:
     """
@@ -94,3 +94,35 @@ def send_email(subject: str, recipient: str, html_body: str, sender: str | None 
     except Exception as e:
         current_app.logger.error(f"❌ Error sending email to {recipient}: {e}")
         return False
+    
+
+
+def get_or_create_google_user(google_id: str, name: str, email: str, avatar_url: str | None = None) -> User:
+    """
+    Find an existing Google user by google_id or email.
+    If not found, create a new one.
+    """
+    user = User.query.filter(
+        (User.google_id == google_id) | (User.email == email)
+    ).first()
+
+    if user:
+        # Update any missing info
+        if not user.google_id:
+            user.google_id = google_id
+        if avatar_url and user.avatar_url != avatar_url:
+            user.avatar_url = avatar_url
+        db.session.commit()
+        return user
+
+    # Create new Google user
+    new_user = User(
+        name=name,
+        email=email,
+        google_id=google_id,
+        avatar_url=avatar_url,
+        is_verified=True  # Google users are automatically verified
+    )
+    db.session.add(new_user)
+    db.session.commit()
+    return new_user

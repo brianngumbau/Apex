@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,8 +12,41 @@ function Register() {
     formState: { errors },
   } = useForm();
 
+  //Google Sign-In
+  useEffect(() => {
+    /* global google */
+    if (window.google) {
+      google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("googleSignupDiv"),
+        { theme: "outline", size: "large", width: "100%" }
+      );
+    }
+  }, []);
+
+  const handleGoogleResponse = async (response) => {
+    try {
+      const res = await axios.post("https://maziwa-90gd.onrender.com/auth/google", {
+        id_token: response.credential,
+      });
+
+      const { access_token, user } = res.data;
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("is_admin", user.is_admin ? "true" : "false");
+
+      alert("Google Sign-Up successful!");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Google Sign-Up Error:", error);
+      alert("Google Sign-Up failed. Try again.");
+    }
+  };
+
   const onSubmit = async (data) => {
-    console.log("Registration Data:", data);
     try {
       const payload = {
         name: data.name.trim(),
@@ -21,41 +54,18 @@ function Register() {
         phone: data.phone.trim(),
         password: data.password,
       };
-
-      const response = await axios.post(
-        "https://maziwa-90gd.onrender.com/register",
-        payload
-      );
-
-      console.log("Registration successful:", response.data);
-
-      alert(
-        "✅ Account created successfully! A verification link has been sent to your email. Please verify before logging in."
-      );
+      await axios.post("https://maziwa-90gd.onrender.com/register", payload);
+      alert(" Account created successfully! Please verify your email.");
       navigate("/login");
     } catch (error) {
-      console.error("Full error object:", error);
-      if (error.response) {
-        const msg = error.response.data.error || error.response.data.message;
-        alert(msg || "Registration failed. Try again.");
-      } else {
-        alert("An error occurred. Please try again later.");
-      }
+      const msg = error.response?.data?.error || "Registration failed. Try again.";
+      alert(msg);
     }
-  };
-
-  const handleGoogleSignup = () => {
-    console.log("Google signup clicked");
-  };
-
-  const handleFacebookSignup = () => {
-    console.log("Facebook signup clicked");
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
-        {/* Heading */}
         <h2 className="text-3xl font-bold text-center text-black">
           Create an Account
         </h2>
@@ -63,7 +73,6 @@ function Register() {
           Join us and manage your contributions easily.
         </p>
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
           {/* Full Name */}
           <div>
@@ -76,17 +85,13 @@ function Register() {
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.name && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.name.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
             )}
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Email
-            </label>
+            <label className="block text-gray-700 font-medium mb-1">Email</label>
             <input
               type="email"
               {...register("email", {
@@ -99,9 +104,7 @@ function Register() {
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
             )}
           </div>
 
@@ -122,9 +125,7 @@ function Register() {
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             {errors.phone && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.phone.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
             )}
           </div>
 
@@ -137,10 +138,7 @@ function Register() {
               type="password"
               {...register("password", {
                 required: "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters",
-                },
+                minLength: { value: 6, message: "Minimum 6 characters" },
               })}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
@@ -171,12 +169,12 @@ function Register() {
             )}
           </div>
 
-          {/* Terms */}
+          {/* Terms Checkbox */}
           <div className="flex items-center">
             <input
               type="checkbox"
               {...register("terms", { required: "You must accept terms" })}
-              className="mr-2"
+              className="mr-2 accent-blue-600"
             />
             <label className="text-sm text-gray-700">
               I agree to the{" "}
@@ -186,12 +184,9 @@ function Register() {
             </label>
           </div>
           {errors.terms && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.terms.message}
-            </p>
+            <p className="text-red-500 text-sm">{errors.terms.message}</p>
           )}
 
-          {/* Register Button */}
           <button
             type="submit"
             className="w-full px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -201,39 +196,24 @@ function Register() {
         </form>
 
         {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="px-3 text-gray-500 text-sm">Or sign up with</span>
-          <div className="flex-grow border-t border-gray-300"></div>
+        <div className="relative mt-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-white px-2 text-gray-500">Or sign up with</span>
+          </div>
         </div>
 
-        {/* Social Auth */}
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={handleGoogleSignup}
-            className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
-          >
-            <img src="/google.logo.png" alt="Google" className="w-5 h-5 mr-2" />
-            <span className="text-gray-700 text-sm font-medium">
-              Sign up with Google
-            </span>
-          </button>
-          <button
-            onClick={handleFacebookSignup}
-            className="w-full border rounded-lg py-2 hover:bg-gray-50 flex items-center justify-center"
-          >
-            <img
-              src="/facebook.logo.png"
-              alt="Facebook"
-              className="w-5 h-5 mr-2"
-            />
-            <span className="text-gray-700 text-sm font-medium">
-              Sign up with Facebook
-            </span>
-          </button>
+        {/* Google Identity SDK Button  */}
+        <div className="mt-6 flex justify-center">
+          <div
+            id="googleSignupDiv"
+            className="flex justify-center items-center w-[260px]"
+          ></div>
         </div>
 
-        {/* Login redirect */}
+        {/* Footer */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{" "}
           <Link to="/login" className="text-blue-600 hover:underline">

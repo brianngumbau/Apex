@@ -53,6 +53,12 @@ class Config:
     # Admin / contact email (receives contact form etc.)
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "maziwa470@gmail.com")
 
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")  #for server flows
+    GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:5173/auth/google/callback")
+
+
     # Token expiration defaults (seconds) can be tweaked
     EMAIL_CONFIRMATION_EXPIRATION = int(os.getenv("EMAIL_CONFIRMATION_EXPIRATION", 3600))  # 1 hour
     PASSWORD_RESET_EXPIRATION = int(os.getenv("PASSWORD_RESET_EXPIRATION", 3600))  # 1 hour

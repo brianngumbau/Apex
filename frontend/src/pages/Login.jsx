@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -7,67 +7,70 @@ import { motion } from "framer-motion";
 function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
-  const onSubmit = async (data) => {
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        "https://maziwa-90gd.onrender.com/login",
-        {
-          email: data.email.trim(),
-          password: data.password,
-        }
+  // Google Sign-In
+  useEffect(() => {
+    /* global google */
+    if (window.google) {
+      google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+      google.accounts.id.renderButton(
+        document.getElementById("googleLoginDiv"),
+        { theme: "outline", size: "large", width: "100%" }
       );
+    }
+  }, []);
 
-      const { access_token, user } = response.data;
+  const handleGoogleResponse = async (response) => {
+    try {
+      const res = await axios.post("https://maziwa-90gd.onrender.com/auth/google", {
+        id_token: response.credential,
+      });
 
-      // check if user is verified
-      if (!user.is_verified) {
-        alert(
-          "⚠️ Your account is not verified. Please check your email for the verification link."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Store token and user info
+      const { access_token, user } = res.data;
       localStorage.setItem("token", access_token);
       localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("is_admin", user.is_admin ? "true" : "false");
 
-      alert("✅ Login successful!");
-
-      // redirect to dashboard/home
+      alert("Login successful via Google!");
       navigate("/dashboard");
     } catch (error) {
-      if (error.response) {
-        console.error("Login error:", error.response.data);
-        const msg =
-          error.response.data.error || error.response.data.message || "Login failed";
-        alert(msg);
-      } else {
-        console.error("Error:", error.message);
-        alert("An error occurred. Try again later.");
-      }
-    } finally {
-      setLoading(false);
+      console.error("Google Login Error:", error);
+      alert("Google Login failed. Try again.");
     }
   };
 
-  const handleGoogleLogin = () => {
-    console.log("Google login clicked");
-    // TODO: implement Google login
-  };
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      const response = await axios.post("https://maziwa-90gd.onrender.com/login", {
+        email: data.email.trim(),
+        password: data.password,
+      });
 
-  const handleFacebookLogin = () => {
-    console.log("Facebook login clicked");
-    // TODO: implement Facebook login
+      const { access_token, user } = response.data;
+
+      if (!user.is_verified) {
+        alert("Please verify your account first via email.");
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem("token", access_token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("is_admin", user.is_admin ? "true" : "false");
+
+      alert("Login successful!");
+      navigate("/dashboard");
+    } catch (error) {
+      const msg = error.response?.data?.error || "Login failed. Try again.";
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -83,7 +86,6 @@ function Login() {
         </h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email Input */}
           <div>
             <label className="block text-gray-700 font-medium mb-1">Email</label>
             <input
@@ -97,7 +99,6 @@ function Login() {
             )}
           </div>
 
-          {/* Password Input */}
           <div>
             <label className="block text-gray-700 font-medium mb-1">Password</label>
             <input
@@ -111,7 +112,6 @@ function Login() {
             )}
           </div>
 
-          {/* Login Button */}
           <button
             type="submit"
             disabled={loading}
@@ -121,39 +121,33 @@ function Login() {
           </button>
         </form>
 
-        {/* Register Redirect */}
         <div className="text-center mt-4">
           <p className="text-sm">
-            Don't have an account?{" "}
+            Don’t have an account?{" "}
             <Link to="/register" className="text-blue-400 hover:underline">
               Register
             </Link>
           </p>
         </div>
 
-        {/* Social Auth buttons */}
-        <div className="flex flex-col gap-3 mt-4">
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full overflow-hidden rounded border border-gray-300 shadow hover:shadow-md transition"
-          >
-            <img
-              src="/google.logo.png"
-              alt="Continue with Google"
-              className="w-full h-10 object-contain"
-            />
-          </button>
+        {/* Divider */}
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            </div>
+          </div>
 
-          <button
-            onClick={handleFacebookLogin}
-            className="w-full overflow-hidden rounded shadow hover:shadow-md transition"
-          >
-            <img
-              src="/facebook.logo.png"
-              alt="Continue with Facebook"
-              className="w-full h-10 object-contain"
-            />
-          </button>
+          {/* Google Sign-In */}
+          <div className="mt-6 flex justify-center">
+            <div
+              id="googleLoginDiv"
+              className="flex justify-center items-center w-[260px]"
+            ></div>
+          </div>
         </div>
       </motion.div>
     </div>
