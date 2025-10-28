@@ -25,7 +25,7 @@ def get_notifications():
             "message": notification.message,
             "type": notification.type,
             "date": notification.date.isoformat(),
-            "read": notification.read
+            "is_read": notification.read
         }
         for notification in notifications
     ]), 200
@@ -49,7 +49,7 @@ def get_unread_notifications():
             "message": notification.message,
             "type": notification.type,
             "date": notification.date.isoformat(),
-            "read": notification.read
+            "is_read": notification.read
         }
         for notification in unread_notifications
     ]), 200
@@ -74,7 +74,7 @@ def mark_notification_as_read(notification_id):
 
     return jsonify({"message": "Notification marked as read"}), 200
 
-@notifications_bp.route("/notifications/read-all", methods=["POST"])
+@notifications_bp.route("/notifications/mark-all-read", methods=["PUT"])
 @jwt_required()
 def mark_all_notifications_as_read():
     """ Marks all notifications as read for the logged-in user. """
@@ -193,4 +193,22 @@ def send_notification():
             )
             db.session.add(notification)
     db.session.commit()
+    
     return jsonify({"message": "Notification sent successfully"}), 200
+
+
+@notifications_bp.route("/notifications/unread-count", methods=["GET"])
+@jwt_required()
+def get_unread_count():
+    """ Returns the number of unread notifications for the logged-in user. """
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"count": 0}), 200  # safe fallback
+
+    count = Notification.query.filter_by(
+        user_id=user_id, group_id=user.group_id, read=False
+    ).count()
+
+    return jsonify({"count": count}), 200

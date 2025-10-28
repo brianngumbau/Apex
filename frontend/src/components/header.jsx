@@ -6,6 +6,7 @@ import Toolbar from "@mui/material/Toolbar";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Badge from "@mui/material/Badge";
 import MoreIcon from "@mui/icons-material/MoreVert";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -13,16 +14,13 @@ import LoginIcon from "@mui/icons-material/Login";
 import CalculateIcon from "@mui/icons-material/Calculate";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SettingsIcon from "@mui/icons-material/Settings";
-
 import { useNavigate } from "react-router-dom";
 
 const StyledToolbar = styled(Toolbar)(({ theme }) => ({
   alignItems: "center",
   paddingTop: theme.spacing(1),
   paddingBottom: theme.spacing(1),
-  "@media all": {
-    minHeight: 64,
-  },
+  "@media all": { minHeight: 64 },
 }));
 
 const StyledMenu = styled(Menu)(({ theme }) => ({
@@ -52,22 +50,38 @@ export default function ProminentAppBar() {
   const theme = useTheme();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-  
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const token = localStorage.getItem("token");
+
+  const fetchUnreadCount = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch("https://maziwa-90gd.onrender.com/notifications/unread-count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.count !== undefined) setUnreadCount(data.count);
+    } catch (err) {
+      console.error("Error fetching unread count:", err);
+    }
   };
 
+  React.useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
   const handleNavigation = (path) => {
     navigate(path);
     handleMenuClose();
   };
 
-  const isLoggedIn = Boolean(localStorage.getItem("token"));
-  const isAdmin = localStorage.getItem("is_admin") === "true"; // ✅ check admin
+  const isLoggedIn = Boolean(token);
+  const isAdmin = localStorage.getItem("is_admin") === "true";
 
   const handleLoginLogout = () => {
     if (isLoggedIn) {
@@ -86,23 +100,17 @@ export default function ProminentAppBar() {
       <AppBar
         position="static"
         sx={{
-          backgroundColor:
-            theme.palette.mode === "dark"
-              ? theme.palette.background.paper
-              : "#ffffff",
+          backgroundColor: "#ffffff",
           color: theme.palette.text.primary,
-          boxShadow:
-            theme.palette.mode === "dark"
-              ? "0 2px 10px rgba(0,0,0,0.7)"
-              : "0 2px 10px rgba(0,0,0,0.1)",
+          boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
         }}
       >
         <StyledToolbar>
-          {/* ✅ Company Logo */}
+          {/* ✅ Logo */}
           <Box sx={{ mr: 2, display: "flex", alignItems: "center" }}>
             <img
               src="maziwa.jpg"
-              alt="Company Logo"
+              alt="Logo"
               style={{ height: 40, cursor: "pointer", borderRadius: "8px" }}
               onClick={() => navigate("/")}
             />
@@ -111,13 +119,14 @@ export default function ProminentAppBar() {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* ✅ Menu Button */}
-          <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
-            onClick={handleMenuOpen}
-          >
-            <MoreIcon />
+          <IconButton size="large" edge="end" color="inherit" onClick={handleMenuOpen}>
+            <Badge
+              color="error"
+              variant={unreadCount > 0 ? "dot" : "standard"}
+              badgeContent={unreadCount > 0 ? unreadCount : null}
+            >
+              <MoreIcon />
+            </Badge>
           </IconButton>
 
           {/* ✅ Dropdown Menu */}
@@ -129,7 +138,13 @@ export default function ProminentAppBar() {
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
             <MenuItem onClick={() => handleNavigation("/notifications")}>
-              <NotificationsIcon fontSize="small" sx={{ mr: 1 }} />
+              <Badge
+                color="error"
+                badgeContent={unreadCount > 0 ? unreadCount : null}
+                sx={{ mr: 1 }}
+              >
+                <NotificationsIcon fontSize="small" />
+              </Badge>
               Notifications
             </MenuItem>
 
@@ -138,7 +153,6 @@ export default function ProminentAppBar() {
               Finance Utilities
             </MenuItem>
 
-            {/* ✅ Only show for admins */}
             {isAdmin && (
               <MenuItem onClick={() => handleNavigation("/admin-dashboard")}>
                 <DashboardIcon fontSize="small" sx={{ mr: 1 }} />
@@ -150,7 +164,6 @@ export default function ProminentAppBar() {
               <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
               Settings
             </MenuItem>
-
 
             <MenuItem onClick={handleLoginLogout}>
               {isLoggedIn ? (
