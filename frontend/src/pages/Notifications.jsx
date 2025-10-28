@@ -1,171 +1,221 @@
-import * as React from "react";
-import { styled, useTheme } from "@mui/material/styles";
-import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import IconButton from "@mui/material/IconButton";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import MoreIcon from "@mui/icons-material/MoreVert";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import LogoutIcon from "@mui/icons-material/Logout";
-import LoginIcon from "@mui/icons-material/Login";
-import CalculateIcon from "@mui/icons-material/Calculate";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import SettingsIcon from "@mui/icons-material/Settings";
+import React, { useEffect, useState } from "react";
+import Nav from "../components/Navbar";
+import ProminentAppBar from "../components/header";
+import {
+  PersonAdd as PersonAddIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Info as InfoIcon,
+  Notifications as NotificationsIcon,
+  DoneAll as DoneAllIcon,
+} from "@mui/icons-material";
+import { CircularProgress, Button } from "@mui/material";
 
-import { useNavigate } from "react-router-dom";
+const BACKEND_URL = "https://maziwa-90gd.onrender.com";
 
-const StyledToolbar = styled(Toolbar)(({ theme }) => ({
-  alignItems: "center",
-  paddingTop: theme.spacing(1),
-  paddingBottom: theme.spacing(1),
-  "@media all": {
-    minHeight: 64,
-  },
-}));
+const getNotificationIcon = (type) => {
+  switch (type) {
+    case "join_request":
+      return <PersonAddIcon className="text-blue-500" fontSize="large" />;
+    default:
+      return <InfoIcon className="text-gray-500" fontSize="large" />;
+  }
+};
 
-const StyledMenu = styled(Menu)(({ theme }) => ({
-  "& .MuiPaper-root": {
-    borderRadius: 12,
-    marginTop: theme.spacing(1),
-    minWidth: 180,
-    boxShadow:
-      theme.palette.mode === "dark"
-        ? "0 4px 20px rgba(0,0,0,0.7)"
-        : "0 4px 20px rgba(0,0,0,0.15)",
-    "& .MuiMenuItem-root": {
-      padding: theme.spacing(1.2, 2),
-      borderRadius: 8,
-      transition: "background 0.2s ease",
-      "&:hover": {
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? theme.palette.grey[800]
-            : theme.palette.grey[100],
-      },
-    },
-  },
-}));
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState([]);
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState("all"); // all, read, unread
 
-export default function ProminentAppBar() {
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = React.useState(null);
-
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-  
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const token = localStorage.getItem("token");
+  const authHeaders = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
-    handleMenuClose();
-  };
-
-  const isLoggedIn = Boolean(localStorage.getItem("token"));
-  const isAdmin = localStorage.getItem("is_admin") === "true"; // ✅ check admin
-
-  const handleLoginLogout = () => {
-    if (isLoggedIn) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("is_admin");
-      navigate("/login");
-    } else {
-      navigate("/login");
+  // 🔹 Fetch notifications
+  const fetchNotifications = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/notifications`, {
+        headers: authHeaders,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch notifications");
+      setNotifications(data);
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setIsLoading(false);
     }
-    handleMenuClose();
   };
+
+  // 🔹 Mark all as read
+  const markAllAsRead = async () => {
+    try {
+      await fetch(`${BACKEND_URL}/notifications/mark-all-read`, {
+        method: "PUT",
+        headers: authHeaders,
+      });
+      fetchNotifications();
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
+  };
+
+  // 🔹 Handle join requests
+  const handleRequest = async (requestId, action) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/group/join/${requestId}`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to ${action} request`);
+      fetchNotifications();
+      setMessage(data.message);
+    } catch (err) {
+      setMessage(err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+    } else {
+      setMessage("You must be logged in to view notifications.");
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  const filteredNotifications =
+    filter === "all"
+      ? notifications
+      : notifications.filter((n) => (filter === "unread" ? !n.is_read : n.is_read));
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar
-        position="static"
-        sx={{
-          backgroundColor:
-            theme.palette.mode === "dark"
-              ? theme.palette.background.paper
-              : "#ffffff",
-          color: theme.palette.text.primary,
-          boxShadow:
-            theme.palette.mode === "dark"
-              ? "0 2px 10px rgba(0,0,0,0.7)"
-              : "0 2px 10px rgba(0,0,0,0.1)",
-        }}
-      >
-        <StyledToolbar>
-          {/* ✅ Company Logo */}
-          <Box sx={{ mr: 2, display: "flex", alignItems: "center" }}>
-            <img
-              src="maziwa.jpg"
-              alt="Company Logo"
-              style={{ height: 40, cursor: "pointer", borderRadius: "8px" }}
-              onClick={() => navigate("/")}
-            />
-          </Box>
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          {/* ✅ Menu Button */}
-          <IconButton
-            size="large"
-            edge="end"
-            color="inherit"
-            onClick={handleMenuOpen}
-          >
-            <MoreIcon />
-          </IconButton>
-
-          {/* ✅ Dropdown Menu */}
-          <StyledMenu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-          >
-            <MenuItem onClick={() => handleNavigation("/notifications")}>
-              <NotificationsIcon fontSize="small" sx={{ mr: 1 }} />
+    <div className="min-h-screen bg-gray-50">
+      <ProminentAppBar />
+      <main className="max-w-4xl mx-auto py-8 px-4">
+        {/* Header Section */}
+        <header className="flex flex-col sm:flex-row items-center justify-between mb-10">
+          <div className="text-center sm:text-left">
+            <h1 className="text-4xl font-extrabold text-gray-900 flex items-center justify-center sm:justify-start">
+              <NotificationsIcon className="mr-3" fontSize="large" />
               Notifications
-            </MenuItem>
+            </h1>
+            <p className="mt-2 text-lg text-gray-600">
+              Here are your latest updates and requests.
+            </p>
+          </div>
 
-            <MenuItem onClick={() => handleNavigation("/FinanceUtilities")}>
-              <CalculateIcon fontSize="small" sx={{ mr: 1 }} />
-              Finance Utilities
-            </MenuItem>
+          <Button
+            onClick={markAllAsRead}
+            variant="contained"
+            color="primary"
+            startIcon={<DoneAllIcon />}
+            sx={{
+              mt: { xs: 4, sm: 0 },
+              backgroundColor: "#2563eb",
+              textTransform: "none",
+              borderRadius: "12px",
+              "&:hover": { backgroundColor: "#1e40af" },
+            }}
+          >
+            Mark all as read
+          </Button>
+        </header>
 
-            {/* ✅ Only show for admins */}
-            {isAdmin && (
-              <MenuItem onClick={() => handleNavigation("/admin-dashboard")}>
-                <DashboardIcon fontSize="small" sx={{ mr: 1 }} />
-                Admin Dashboard
-              </MenuItem>
-            )}
+        {/* Filter Buttons */}
+        <div className="flex justify-center space-x-3 mb-8">
+          {["all", "unread", "read"].map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={`px-4 py-2 rounded-full border text-sm font-medium transition ${
+                filter === type
+                  ? "bg-blue-100 border-blue-400 text-blue-600"
+                  : "bg-white border-gray-300 text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
+        </div>
 
-            <MenuItem onClick={() => handleNavigation("/settings")}>
-              <SettingsIcon fontSize="small" sx={{ mr: 1 }} />
-              Settings
-            </MenuItem>
+        {message && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md shadow-sm">
+            <p className="font-bold">Message</p>
+            <p>{message}</p>
+          </div>
+        )}
 
+        {isLoading ? (
+          <div className="text-center py-10">
+            <CircularProgress />
+            <p className="mt-4 text-lg font-semibold text-gray-700">
+              Loading notifications...
+            </p>
+          </div>
+        ) : filteredNotifications.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow-md">
+            <InfoIcon style={{ fontSize: 60 }} className="mx-auto text-gray-400" />
+            <p className="mt-4 text-xl text-gray-600">No notifications yet.</p>
+            <p className="text-gray-500">
+              When you have new updates, they will appear here.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-4">
+            {filteredNotifications.map((note) => (
+              <li
+                key={note.id}
+                className={`p-5 rounded-lg shadow-md border border-gray-200 flex items-start space-x-4 ${
+                  note.is_read ? "bg-white" : "bg-blue-50"
+                }`}
+              >
+                <div className="flex-shrink-0 mt-1">
+                  {getNotificationIcon(note.type)}
+                </div>
+                <div className="flex-grow">
+                  <p
+                    className={`${
+                      note.is_read ? "text-gray-800" : "text-gray-900 font-semibold"
+                    }`}
+                  >
+                    {note.message}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {new Date(note.date).toLocaleString()}
+                  </p>
+                </div>
 
-            <MenuItem onClick={handleLoginLogout}>
-              {isLoggedIn ? (
-                <>
-                  <LogoutIcon fontSize="small" sx={{ mr: 1 }} /> Logout
-                </>
-              ) : (
-                <>
-                  <LoginIcon fontSize="small" sx={{ mr: 1 }} /> Login
-                </>
-              )}
-            </MenuItem>
-          </StyledMenu>
-        </StyledToolbar>
-      </AppBar>
-    </Box>
+                {note.type === "join_request" && (
+                  <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                    <button
+                      onClick={() => handleRequest(note.id, "accept")}
+                      className="flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                    >
+                      <CheckCircleIcon className="mr-2" />
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleRequest(note.id, "decline")}
+                      className="flex items-center justify-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                      <CancelIcon className="mr-2" />
+                      Decline
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+      <Nav />
+    </div>
   );
 }
