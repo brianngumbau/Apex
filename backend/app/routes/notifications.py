@@ -212,3 +212,26 @@ def get_unread_count():
     ).count()
 
     return jsonify({"count": count}), 200
+
+
+@notifications_bp.route("/notifications/<int:notification_id>/mark-read", methods=["PUT"])
+@jwt_required()
+def mark_single_notification_as_read(notification_id):
+    """ Marks a specific notification as read when clicked individually. """
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.group_id:
+        return jsonify({"error": "User not found or not in a group"}), 400
+
+    notification = Notification.query.filter_by(
+        id=notification_id, user_id=user_id, group_id=user.group_id
+    ).first()
+
+    if not notification:
+        return jsonify({"error": "Notification not found"}), 404
+
+    notification.read = True
+    db.session.commit()
+
+    return jsonify({"message": "Notification marked as read"}), 200

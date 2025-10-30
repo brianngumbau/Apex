@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
+import { motion } from "framer-motion";
+import Snackbar from "@mui/material/Snackbar";
 import {
   PersonAdd as PersonAddIcon,
   CheckCircle as CheckCircleIcon,
@@ -10,8 +10,11 @@ import {
   DoneAll as DoneAllIcon,
 } from "@mui/icons-material";
 import { CircularProgress, Button } from "@mui/material";
+import Nav from "../components/Navbar";
+import ProminentAppBar from "../components/header";
 
-const BACKEND_URL = "https://maziwa-90gd.onrender.com";
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "https://maziwa-90gd.onrender.com";
 
 const getNotificationIcon = (type) => {
   switch (type) {
@@ -26,7 +29,8 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [filter, setFilter] = useState("all"); // all, read, unread
+  const [filter, setFilter] = useState("all");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const token = localStorage.getItem("token");
   const authHeaders = {
@@ -34,7 +38,7 @@ export default function NotificationsPage() {
     "Content-Type": "application/json",
   };
 
-  // 🔹 Fetch notifications
+  // Fetch notifications
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
@@ -42,8 +46,9 @@ export default function NotificationsPage() {
         headers: authHeaders,
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch notifications");
-      setNotifications(data);
+      if (!res.ok)
+        throw new Error(data.error || "Failed to fetch notifications");
+      setNotifications(data.notifications || data);
     } catch (err) {
       setMessage(err.message);
     } finally {
@@ -51,20 +56,45 @@ export default function NotificationsPage() {
     }
   };
 
-  // 🔹 Mark all as read
+  useEffect(() => {
+    if (token) fetchNotifications();
+    else {
+      setMessage("You must be logged in to view notifications.");
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  // Mark all as read
   const markAllAsRead = async () => {
     try {
       await fetch(`${BACKEND_URL}/notifications/mark-all-read`, {
         method: "PUT",
         headers: authHeaders,
       });
-      fetchNotifications();
+      await fetchNotifications();
+      setSnackbarOpen(true);
     } catch (err) {
       console.error("Error marking all as read:", err);
     }
   };
 
-  // 🔹 Handle join requests
+  // ✅ NEW: Mark individual notification as read
+  const markAsRead = async (id) => {
+    try {
+      await fetch(`${BACKEND_URL}/notifications/${id}/mark-read`, {
+        method: "PUT",
+        headers: authHeaders,
+      });
+      // Instantly update UI without reloading
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    } catch (err) {
+      console.error("Error marking as read:", err);
+    }
+  };
+
+  // Handle join request actions
   const handleRequest = async (requestId, action) => {
     try {
       const res = await fetch(`${BACKEND_URL}/group/join/${requestId}`, {
@@ -81,25 +111,39 @@ export default function NotificationsPage() {
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      fetchNotifications();
-    } else {
-      setMessage("You must be logged in to view notifications.");
-      setIsLoading(false);
-    }
-  }, [token]);
+  // Filter notifications
+  const filteredNotifications = notifications.filter((n) => {
+    if (filter === "unread") return !n.is_read;
+    if (filter === "read") return n.is_read;
+    return true;
+  });
 
-  const filteredNotifications =
-    filter === "all"
-      ? notifications
-      : notifications.filter((n) => (filter === "unread" ? !n.is_read : n.is_read));
+  // Group notifications by date
+  const grouped = filteredNotifications.reduce((acc, note) => {
+    const dateKey = new Date(note.date).toLocaleDateString("en-KE", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    acc[dateKey] = acc[dateKey] || [];
+    acc[dateKey].push(note);
+    return acc;
+  }, {});
+
+  // Count summaries
+  const counts = {
+    all: notifications.length,
+    unread: notifications.filter((n) => !n.is_read).length,
+    read: notifications.filter((n) => n.is_read).length,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <ProminentAppBar />
+
       <main className="max-w-4xl mx-auto py-8 px-4">
-        {/* Header Section */}
+        {/* Header */}
         <header className="flex flex-col sm:flex-row items-center justify-between mb-10">
           <div className="text-center sm:text-left">
             <h1 className="text-4xl font-extrabold text-gray-900 flex items-center justify-center sm:justify-start">
@@ -107,7 +151,7 @@ export default function NotificationsPage() {
               Notifications
             </h1>
             <p className="mt-2 text-lg text-gray-600">
-              Here are your latest updates and requests.
+              Stay up-to-date with all your latest updates and requests.
             </p>
           </div>
 
@@ -140,11 +184,12 @@ export default function NotificationsPage() {
                   : "bg-white border-gray-300 text-gray-600 hover:bg-gray-100"
               }`}
             >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
+              {type.charAt(0).toUpperCase() + type.slice(1)} ({counts[type]})
             </button>
           ))}
         </div>
 
+        {/* Message Feedback */}
         {message && (
           <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md shadow-sm">
             <p className="font-bold">Message</p>
@@ -152,6 +197,7 @@ export default function NotificationsPage() {
           </div>
         )}
 
+        {/* Loading Spinner */}
         {isLoading ? (
           <div className="text-center py-10">
             <CircularProgress />
@@ -164,57 +210,102 @@ export default function NotificationsPage() {
             <InfoIcon style={{ fontSize: 60 }} className="mx-auto text-gray-400" />
             <p className="mt-4 text-xl text-gray-600">No notifications yet.</p>
             <p className="text-gray-500">
-              When you have new updates, they will appear here.
+              When new updates arrive, they’ll appear here.
             </p>
           </div>
         ) : (
-          <ul className="space-y-4">
-            {filteredNotifications.map((note) => (
-              <li
-                key={note.id}
-                className={`p-5 rounded-lg shadow-md border border-gray-200 flex items-start space-x-4 ${
-                  note.is_read ? "bg-white" : "bg-blue-50"
-                }`}
-              >
-                <div className="flex-shrink-0 mt-1">
-                  {getNotificationIcon(note.type)}
-                </div>
-                <div className="flex-grow">
-                  <p
-                    className={`${
-                      note.is_read ? "text-gray-800" : "text-gray-900 font-semibold"
+          Object.entries(grouped).map(([date, items]) => (
+            <div key={date} className="mb-8">
+              <h3 className="text-gray-500 font-semibold mb-3">{date}</h3>
+              <ul className="space-y-4">
+                {items.map((note) => (
+                  <motion.li
+                    key={note.id}
+                    onClick={() => markAsRead(note.id)} // ✅ added
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className={`cursor-pointer p-5 rounded-lg shadow-md border flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4 transition-all duration-300 ${
+                      note.is_read
+                        ? "bg-white border-gray-200"
+                        : "bg-blue-50 border-blue-300"
                     }`}
                   >
-                    {note.message}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {new Date(note.date).toLocaleString()}
-                  </p>
-                </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="flex-shrink-0 mt-1">
+                        {getNotificationIcon(note.type)}
+                      </div>
+                      <div>
+                        <p
+                          className={`${
+                            note.is_read
+                              ? "text-gray-800"
+                              : "text-gray-900 font-semibold"
+                          }`}
+                        >
+                          {note.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(note.date).toLocaleString("en-KE", {
+                            weekday: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            day: "2-digit",
+                            month: "short",
+                          })}
+                        </p>
+                      </div>
+                    </div>
 
-                {note.type === "join_request" && (
-                  <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                    <button
-                      onClick={() => handleRequest(note.id, "accept")}
-                      className="flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                    >
-                      <CheckCircleIcon className="mr-2" />
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => handleRequest(note.id, "decline")}
-                      className="flex items-center justify-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                    >
-                      <CancelIcon className="mr-2" />
-                      Decline
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+                    {/* Action buttons for join requests */}
+                    {note.type === "join_request" && (
+                      <div className="flex flex-row items-center justify-end space-x-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // ✅ prevent auto mark
+                            handleRequest(note.id, "accept");
+                          }}
+                          className="flex items-center justify-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                        >
+                          <CheckCircleIcon className="mr-2" />
+                          Accept
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation(); // ✅ prevent auto mark
+                            handleRequest(note.id, "decline");
+                          }}
+                          className="flex items-center justify-center px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                        >
+                          <CancelIcon className="mr-2" />
+                          Decline
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Unread badge */}
+                    {!note.is_read && (
+                      <span className="self-end sm:self-center px-2 py-0.5 text-xs bg-blue-500 text-white rounded-full">
+                        New
+                      </span>
+                    )}
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          ))
         )}
+
+        {/* Snackbar for success feedback */}
+        <Snackbar
+          open={snackbarOpen}
+          onClose={() => setSnackbarOpen(false)}
+          autoHideDuration={3000}
+          message="✅ All notifications marked as read"
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        />
       </main>
+
       <Nav />
     </div>
   );
