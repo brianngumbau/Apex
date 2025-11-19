@@ -37,7 +37,6 @@ def get_all_transactions():
                 "group_id": transaction.group_id,
                 "is_admin": User.query.get(transaction.user_id).is_admin,
                 "amount": transaction.amount,
-                # ✅ will now return "credit", "debit", or "repayment"
                 "type": transaction.type.value,
                 "reason": transaction.reason,
                 "date": transaction.date.strftime("%Y-%m-%d %H:%M:%S")
