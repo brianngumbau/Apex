@@ -414,3 +414,42 @@ def change_password():
     db.session.commit()
 
     return jsonify({"message": "Password changed successfully"}), 200
+
+
+# Delete Account
+@auth_bp.route("/user/delete", methods=["DELETE"])
+@jwt_required()
+def delete_account():
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    try:
+        # Check group dependencies
+        if user.group_id:
+            group = Group.query.get(user.group_id)
+            
+            # If user is the ADMIN of the group
+            if group and group.admin_id == user.id:
+                # Count how many members are in this group
+                member_count = User.query.filter_by(group_id=group.id).count()
+                
+                if member_count > 1:
+                    return jsonify({
+                        "error": "Action denied. You are the group admin. You cannot delete your account while other members are still in the group."
+                    }), 403
+                
+                # If admin is the only member left, delete the group first
+                db.session.delete(group)
+
+        # Proceed to delete the user
+        db.session.delete(user)
+        db.session.commit()
+        
+        return jsonify({"message": "Account deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete account", "details": str(e)}), 500
