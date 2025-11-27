@@ -6,16 +6,11 @@ import { faHouse, faUser, faUsers } from '@fortawesome/free-solid-svg-icons';
 const NavLinks = () => {
   const linkClasses = ({ isActive }) =>
     `flex flex-col items-center text-sm transition-colors duration-300 
-    ${isActive ? "text-black-500" : "text-gray-500"} 
-    hover:text-black-400`;
+    ${isActive ? "text-black" : "text-gray-500"} 
+    hover:text-black`;
 
   return (
     <>
-      <NavLink to="/profile" className={linkClasses} aria-label="Profile">
-        <FontAwesomeIcon icon={faUser} size="lg" />
-        <span className="mt-1">Profile</span>
-      </NavLink>
-
       <NavLink to="/dashboard" className={linkClasses} aria-label="Dashboard">
         <FontAwesomeIcon icon={faHouse} size="lg" />
         <span className="mt-1">Home</span>
@@ -24,6 +19,11 @@ const NavLinks = () => {
       <NavLink to="/group" className={linkClasses} aria-label="Groups">
         <FontAwesomeIcon icon={faUsers} size="lg" />
         <span className="mt-1">Groups</span>
+      </NavLink>
+
+      <NavLink to="/profile" className={linkClasses} aria-label="Profile">
+        <FontAwesomeIcon icon={faUser} size="lg" />
+        <span className="mt-1">Profile</span>
       </NavLink>
     </>
   );
