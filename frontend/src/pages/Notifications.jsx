@@ -11,7 +11,7 @@ import {
 } from "@mui/icons-material";
 import { CircularProgress, Button } from "@mui/material";
 import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
+import ProminentAppBar from "../components/Header";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || "https://maziwa-90gd.onrender.com";

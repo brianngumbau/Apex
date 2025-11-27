@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
+import ProminentAppBar from "../components/Header";
 import AccountSummary from "../components/AccountSummary";
 import ContributionStreakTable from "../components/ContributionStreakTable";
 

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
-
+import ProminentAppBar from "../components/Header";
 
 
 const BACKEND_URL = "https://maziwa-90gd.onrender.com";

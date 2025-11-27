@@ -2,7 +2,7 @@ import React, { useState } from "react"; // Corrected this line
 import { useNavigate } from "react-router-dom";
 import { Button, TextField, CircularProgress, Alert, Box, Paper, Typography } from "@mui/material";
 import { GroupAdd, Lock } from "@mui/icons-material";
-import ProminentAppBar from "../components/header";
+import ProminentAppBar from "../components/Header";
 import Nav from "../components/Navbar";
 
 const BACKEND_URL = "https://maziwa-90gd.onrender.com";

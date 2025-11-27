@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Nav from "../components/Navbar";
-import ProminentAppBar from "../components/header";
+import ProminentAppBar from "../components/Header";
 import axios from "axios";
 import { CreditCard, Wallet, TrendingUp } from "lucide-react";
 

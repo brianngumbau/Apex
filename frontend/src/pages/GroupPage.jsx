@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import ProminentAppBar from "../components/header";
+import ProminentAppBar from "../components/Header";
 import Announcements from "../components/Announcements";
 import Nav from "../components/Navbar";
 
