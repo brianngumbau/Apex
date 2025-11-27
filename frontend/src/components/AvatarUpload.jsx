@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Dialog, DialogTitle, DialogContent, Button } from "@mui/material";
+import { API_BASE_URL } from "../config";
 
 function AvatarUpload({ onClose, onUploaded }) {
   const [file, setFile] = useState(null);
@@ -15,7 +16,7 @@ function AvatarUpload({ onClose, onUploaded }) {
       setUploading(true);
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        "https://maziwa-90gd.onrender.com/user/profile/photo",
+        `${API_BASE_URL}/user/profile/photo`,
         formData,
         {
           headers: {
