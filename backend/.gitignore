@@ -3,6 +3,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Python venv
+venv/
+maziwa/
+*.pyc
+*.pyo
+
 # C extensions
 *.so
 
@@ -13,7 +19,7 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
+.eggs/ 
 lib/
 lib64/
 parts/
@@ -129,6 +135,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
@@ -172,3 +179,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Flask
+instance/
+
+# IDE
+.vscode/
